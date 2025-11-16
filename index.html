@@ -55,15 +55,20 @@
         
         <div class="mb-10 p-6 bg-gray-700 rounded-xl">
             <h2 class="text-xl font-semibold text-white mb-3">INSERIR DADOS GERAIS (Site de Terceiros)</h2>
-            <div class="flex flex-col md:flex-row gap-4">
-                <textarea id="generalData" rows="4" placeholder="Cole aqui os dados da empresa (ex: cotação, LPA, VPA, etc.) em texto puro." class="bg-gray-700 text-white border border-gray-600 p-3 rounded-xl w-full md:w-3/4 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"></textarea>
-                <button type="button" id="parseButton" class="w-full md:w-1/4 p-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-500 transition-colors shadow-md self-end">
+            <div class="flex flex-col md:flex-row gap-4 mb-3">
+                <textarea id="generalData" rows="4" placeholder="Cole aqui os dados da empresa (ex: cotação, LPA, VPA, etc.) em texto puro." class="bg-gray-700 text-white border border-gray-600 p-3 rounded-xl w-full focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"></textarea>
+            </div>
+            <div class="flex gap-4">
+                <button type="button" id="parseButton" class="w-full md:w-1/2 p-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-500 transition-colors shadow-md">
                     Preencher Campos
+                </button>
+                <button type="button" id="clearButton" class="w-full md:w-1/2 p-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-500 transition-colors shadow-md">
+                    LIMPAR TODOS OS CAMPOS
                 </button>
             </div>
             <p class="text-sm text-gray-400 mt-2">Os dados serão extraídos e preencherão os campos abaixo.</p>
         </div>
-
+        
         <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">1. Dados de Preço e Valor</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div class="input-group">
@@ -190,10 +195,18 @@
     // URL COMPLETA com a chave de API anexada para autenticação
     const apiUrl = baseUrl + "?key=" + apiKey;
 
+    // IDs de todos os campos que devem ser limpos, incluindo a textarea de dados gerais
+    const fieldIds = [
+        'generalData', 'Ticker', 'P', 'LPA', 'VPA', 'VM', 'DY_pct', 
+        'ROE_pct', 'ML_pct', 'ReceitaLiq', 'AtivosTotais', 'DL', 
+        'EBITDA', 'AtivoCirc', 'PassCirc', 'EBIT'
+    ];
+
+
     document.getElementById('analysisForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Esconde a área de risco se estiver visível e mostra o loading principal
+        // Esconde relatórios e mostra o loading principal
         document.getElementById('riskArea').classList.add('hidden');
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('reportArea').classList.add('hidden');
@@ -224,6 +237,28 @@
         // Chamar a nova função de análise de risco e cenários
         generateRiskAnalysis(data.Ticker);
     });
+
+    // NOVO: Função para limpar todos os campos
+    document.getElementById('clearButton').addEventListener('click', clearFields);
+    
+    function clearFields() {
+        fieldIds.forEach(id => {
+            const field = document.getElementById(id);
+            if (field) {
+                field.value = "";
+            }
+        });
+        
+        // Opcional: Limpar as áreas de resultado
+        document.getElementById('riskArea').classList.add('hidden');
+        document.getElementById('reportArea').classList.add('hidden');
+        document.getElementById('keyMetrics').innerHTML = '';
+        document.getElementById('recommendationText').textContent = '';
+        document.getElementById('finalRecommendation').textContent = '';
+        document.getElementById('finalRecommendation').className = 'text-center text-4xl font-extrabold mt-6 p-3 rounded-lg'; // Limpa o estilo de cor
+        
+        console.log("Todos os campos e resultados foram limpos.");
+    }
 
     // Função para tratar o texto colado e preencher os campos
     function parseGeneralData() {
