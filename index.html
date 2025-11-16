@@ -260,13 +260,21 @@
         console.log("Todos os campos e resultados foram limpos.");
     }
 
-    // Função para tratar o texto colado e preencher os campos
+    // 💡 FUNÇÃO DE EXTRAÇÃO DE DADOS (parseGeneralData) - ATUALIZADA
     function parseGeneralData() {
-        const rawText = document.getElementById('generalData').value;
+        let rawText = document.getElementById('generalData').value;
         if (!rawText) {
             console.warn("Nenhum dado colado para extração.");
             return;
         }
+
+        // 1. Limpeza e Normalização
+        // Remove caracteres e ícones que atrapalham a busca por proximidade
+        rawText = rawText
+            .replace(/arrow_downward|arrow_upward|help_outline|format_quote|show_chart|date_range|local_fire_department|hotel/gi, ' ')
+            .replace(/\s+/g, ' ') // Substitui múltiplos espaços por um único
+            .replace(/\u00a0/g, ' ') // Remove o espaço irremovível HTML (&nbsp;)
+            .trim();
 
         let valuesFound = 0;
         
@@ -300,64 +308,75 @@
         const extracted = {};
 
         // Helper para extrair o texto de valor de forma mais flexível
-        // O regex busca pelo padrão e captura o valor numérico (incluindo vírgulas/pontos)
+        // O regex busca pelo padrão e captura o valor numérico (incluindo vírgulas/pontos, B, M)
         const extractValue = (pattern) => {
+            // Regex que busca pelo padrão e captura o valor com R$, % ou unidade (B/M)
             const match = rawText.match(new RegExp(pattern, 'i'));
             // Retorna o primeiro grupo de captura que deve ser o valor
             return match ? match[1] : null;
         };
         
-        // 1. Cotação Atual (P) - Busca por "Valor atual" ou "Cotação"
-        const P_raw = extractValue('(?:Valor atual|Cotação\\s*Atual).*?R\\$\\s*([\\d\\.,]+)');
+        // 1. Ticker (Busca pelo Ticker da Ação (RANI3) após COTAÇÃO ou Volatilidade)
+        const Ticker_match = rawText.match(/(?:COTAÇÃO da|Volatilidade histórica da)\s+([A-Z0-9]+)/i);
+        extracted.Ticker = Ticker_match ? Ticker_match[1] : null;
+
+        // 2. Cotação Atual (P) - Busca por "Valor atual"
+        const P_raw = extractValue('(?:Valor\\s*atual).*?R\\$\\s*([\\d\\.,]+)');
         extracted.P = cleanAndParse(P_raw);
 
-        // 2. Lucro por Ação (LPA)
-        const LPA_raw = extractValue('(?:LPA)\\s*(?:format_quote)?\\s*([\\d\\.,]+)');
+        // 3. Lucro por Ação (LPA) - Buscando por "LPA"
+        const LPA_raw = extractValue('(?:LPA)\\s*([\\d\\.,]+)');
         extracted.LPA = cleanAndParse(LPA_raw);
 
-        // 3. Valor Patrimonial por Ação (VPA)
-        const VPA_raw = extractValue('(?:VPA)\\s*(?:format_quote)?\\s*([\\d\\.,]+)');
+        // 4. Valor Patrimonial por Ação (VPA) - Buscando por "VPA"
+        const VPA_raw = extractValue('(?:VPA)\\s*([\\d\\.,]+)');
         extracted.VPA = cleanAndParse(VPA_raw);
 
-        // 4. Valor de Mercado (VM) - Market Cap (R$ Milhões)
-        // Usa a flag 'B' para identificar bilhões e acionar a conversão
-        const VM_raw = extractValue('(?:Market Cap)\\s*R\\$\\s*([\\d\\.,]+[B])');
+        // 5. Valor de Mercado (VM) - Market Cap (R$ Milhões)
+        // O valor 1.96B deve ser convertido para 1960.00 Milhões.
+        const VM_raw = extractValue('(?:Market\\s*Cap)\\s*R\\$\\s*([\\d\\.,]+[B])');
+        // Usamos 'true' para acionar a conversão de B para Milhões (1000x)
         extracted.VM = cleanAndParse(VM_raw, true); 
 
-        // 5. Dividend Yield (D.Y.) (%) - Busca por D.Y. ou Dividend Yield seguido por %
-        const DY_raw = extractValue('(?:Dividend Yield|D\\.Y)\\s*.*?([\\d\\.,]+)\\s*\\%');
-        extracted.DY_pct = cleanAndParse(DY_raw);
+        // 6. Dividend Yield (D.Y.) (%) - Busca por D.Y ou "Dividend Yield"
+        // Busca a primeira ocorrência (8,64%)
+        const DY_raw = extractValue('(?:Dividend\\s*Yield|D\\.Y)\\s*.*?([\\d\\.,]+)\\s*%');
+        // Se a busca principal falhar (ou seja, só encontrar o D.Y do painel de múltiplos - 7.35%)
+        if (!DY_raw) {
+            const DY_alt_raw = extractValue('(?:Dividend\\s*Yield\\s*%)\\s*([\\d\\.,]+)');
+            extracted.DY_pct = cleanAndParse(DY_alt_raw);
+        } else {
+            extracted.DY_pct = cleanAndParse(DY_raw);
+        }
 
-        // 6. ROE (Retorno sobre Patrimônio) (%)
-        const ROE_raw = extractValue('(?:ROE)\\s*(?:format_quote)?\\s*([\\d\\.,]+)');
+        // 7. ROE (Retorno sobre Patrimônio) (%)
+        const ROE_raw = extractValue('(?:ROE).*?([\\d\\.,]+)%');
         extracted.ROE_pct = cleanAndParse(ROE_raw);
 
-        // 7. Margem Líquida (ML) (%)
-        const ML_raw = extractValue('(?:M\\. Líquida)\\s*(?:format_quote)?\\s*([\\d\\.,]+)');
+        // 8. Margem Líquida (ML) (%)
+        const ML_raw = extractValue('(?:M\\.\\s*Líquida)\\s*([\\d\\.,]+)%');
         extracted.ML_pct = cleanAndParse(ML_raw);
         
-        // Outros indicadores existentes no seu formulário (EBITDA, DL, etc.) não puderam ser
-        // extraídos diretamente como valores em R$ Milhões no texto de exemplo e serão ignorados.
+        // **NOVOS CAMPOS (Que o texto não fornece em Milhões R$ e não serão extraídos):**
+        // ReceitaLiq, AtivosTotais, EBIT, DL, EBITDA, AtivoCirc, PassCirc
+        // Como o texto de exemplo (RANI3) só fornece múltiplos, a extração dos valores absolutos (Milhões R$) é impossível.
 
         // Preenche os campos do formulário
         for (const [key, value] of Object.entries(extracted)) {
             const input = document.getElementById(key);
             if (input && value !== null && !isNaN(value)) {
-                // Preenche o valor com 2 casas decimais
-                input.value = value.toFixed(2);
+                // Ticker é string, os demais são números com 2 casas decimais
+                input.value = (key === 'Ticker') ? value : value.toFixed(2);
                 valuesFound++;
             }
         }
         
         if (valuesFound > 0) {
-            // Feedback para o usuário sobre o preenchimento
-            // Substituindo alert por um console.log para evitar interrupção no iFrame
             console.log(`Sucesso! ${valuesFound} campos foram preenchidos.`);
         } else {
-            console.warn("Nenhum dado relevante encontrado. Por favor, cole o texto padrão do site.");
+            console.warn("Nenhum dado relevante encontrado. Verifique se o texto copiado inclui os indicadores-chave.");
         }
     }
-
 
     // Função auxiliar para coletar e validar dados
     function collectData() {
@@ -610,7 +629,7 @@ ${JSON.stringify(score.commentary, null, 2)}
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
-                            systemInstruction: { parts: [{ text: "Você é um Analista Financeiro Sênior e seu objetivo é fornecer um relatório de análise fundamentalista de ações, conciso e objetivo, estritamente baseado nos indicadores fornecidos. Sua resposta deve ser direta e em português." }] }
+                            systemInstruction: { parts: [{ text: "Você é um Analista Financeiro Sênior e seu objetivo é fornecer um relatório fundamentalista objetivo, usando Markdown para formatação e focando nos indicadores fornecidos. A recomendação final deve ser clara e baseada no score, com um breve resumo das justificativas." }] }
                         })
                     });
 
@@ -618,7 +637,7 @@ ${JSON.stringify(score.commentary, null, 2)}
                         break;
                     }
                 } catch (error) {
-                    console.error("Erro na tentativa de fetch:", error);
+                    console.error("Erro na tentativa de fetch (Relatório):", error);
                 }
                 attempts++;
                 await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000)); // Exponential backoff
@@ -632,24 +651,27 @@ ${JSON.stringify(score.commentary, null, 2)}
             const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar o texto do relatório.";
             
             textElement.textContent = text;
-            recommendationElement.textContent = `Recomendação: ${recommendation}`;
+            recommendationElement.textContent = recommendation;
             
-            // Estiliza a recomendação final
-            let bgColor = '';
-            if (recommendation === 'COMPRA FORTE' || recommendation === 'COMPRA') {
-                bgColor = 'bg-green-700';
+            // Define a cor da recomendação
+            let colorClass = 'bg-gray-600';
+            if (recommendation === 'COMPRA FORTE') {
+                colorClass = 'bg-green-700 text-white';
+            } else if (recommendation === 'COMPRA') {
+                colorClass = 'bg-lime-600 text-white';
             } else if (recommendation === 'NEUTRA') {
-                bgColor = 'bg-yellow-600';
-            } else {
-                bgColor = 'bg-red-700';
+                colorClass = 'bg-yellow-600 text-white';
+            } else if (recommendation === 'VENDA') {
+                colorClass = 'bg-red-700 text-white';
             }
-            recommendationElement.className = `text-center text-4xl font-extrabold mt-6 p-3 rounded-lg text-white ${bgColor}`;
+            recommendationElement.className = `text-center text-4xl font-extrabold mt-6 p-3 rounded-lg ${colorClass}`;
+
 
         } catch (error) {
             console.error("Erro final ao gerar relatório:", error);
-            textElement.textContent = `Falha ao gerar o relatório final (IA): ${error.message}.`;
+            textElement.textContent = `Falha ao gerar o relatório (IA): ${error.message}.`;
             recommendationElement.textContent = 'ERRO';
-            recommendationElement.className = 'text-center text-4xl font-extrabold mt-6 p-3 rounded-lg text-white bg-gray-600';
+            recommendationElement.className = 'text-center text-4xl font-extrabold mt-6 p-3 rounded-lg bg-red-900 text-white';
         } finally {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('reportArea').classList.remove('hidden');
