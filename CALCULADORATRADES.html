@@ -21,7 +21,8 @@
         }
         h1 {
             /* Bright color for dark mode header and border for professional look */
-            @apply text-3xl font-extrabold text-cyan-400 text-center mb-8 pb-3 border-b-4 border-cyan-500;
+            /* AUMENTADO DE text-3xl PARA text-4xl */
+            @apply text-4xl font-extrabold text-cyan-400 text-center mb-8 pb-3 border-b-4 border-cyan-500 flex items-center justify-center gap-3;
         }
         .input-group {
             @apply mb-5 flex items-center gap-4;
@@ -30,11 +31,23 @@
             @apply flex-1 font-medium text-gray-200 flex items-center;
         }
         .input-group input {
-            /* Dark input fields for professional contrast - Text is WHITE on dark background (bg-gray-700) */
-            @apply flex-1 p-3 border border-gray-600 bg-gray-700 text-white rounded-xl focus:ring-cyan-500 focus:border-cyan-500 transition duration-150;
+            /* CORREÇÃO DE CONTRASTE: Texto branco em fundo cinza escuro para máxima legibilidade */
+            background-color: #374151; /* gray-700 */
+            color: #FFFFFF; /* Texto branco */
+            border: 1px solid #4B5563; /* gray-600 */
+            padding: 0.75rem; /* p-3 */
+            border-radius: 0.75rem; /* rounded-xl */
+            flex: 1; /* flex-1 */
+            transition: all 150ms ease-in-out;
         }
+        .input-group input:focus {
+            outline: none;
+            border-color: #06B6D4; /* focus:border-cyan-500 */
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.5); /* focus:ring-cyan-500 */
+        }
+
         .info-icon {
-            @apply cursor-pointer text-cyan-400 font-bold ml-2 transition duration-150 hover:text-cyan-300;
+            @apply cursor-pointer text-cyan-400 font-bold ml-2 transition duration-150 hover:text-cyan-300 text-base;
         }
         .info-tooltip {
             display: none;
@@ -59,7 +72,13 @@
 <body>
 
 <div class="container">
-    <h1>Ferramenta de Análise de Ações (Método PEG Ratio)</h1>
+    <h1>
+        Ferramenta de Análise de Ações (Método PEG Ratio)
+        <!-- Ícone de informação para o PEG Ratio -->
+        <span class="info-icon" 
+            onmouseover="showTooltip(this, 'O PEG Ratio (Price/Earnings to Growth) é um indicador que ajusta o P/L (Preço/Lucro) pelo crescimento esperado dos lucros. É usado para determinar se uma ação está cara ou barata em relação ao seu potencial de crescimento futuro. PEG < 1 é considerado barato; PEG = 1 é justo; PEG > 1 é caro.')" 
+            onmouseout="hideTooltip()">i</span>
+    </h1>
     <form id="analysisForm">
         <p class="text-gray-300 mb-6">Insira os dados da Ação (últimos 12 meses):</p>
 
@@ -112,7 +131,7 @@
         
         <hr class="my-4 border-gray-600">
 
-        <!-- NOVO: Adicionamos margem inferior ao item de status e um div para a explicação -->
+        <!-- Manteve o div de explicação adicionado anteriormente -->
         <div class="result-item flex justify-between py-2 mb-2"><span>**STATUS DA AÇÃO:**</span> <strong id="statusFinal"></strong></div>
         <div id="statusExplanation" class="text-sm italic text-gray-400 p-3 bg-gray-900 rounded-lg">
             <!-- Esta div será preenchida pelo JavaScript com a explicação -->
@@ -251,7 +270,7 @@
         statusElement.textContent = statusText;
         statusElement.className = statusClass;
         
-        // NOVO: Exibe a explicação
+        // Exibe a explicação
         explanationElement.textContent = explanationText; 
         
         resultsDiv.style.display = 'block';
