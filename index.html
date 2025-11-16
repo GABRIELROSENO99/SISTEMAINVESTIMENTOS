@@ -1,3 +1,10 @@
+Aqui está o código HTML/JavaScript completo (index.html) com a função parseGeneralData atualizada para extrair os dados no formato "Rótulo: Valor" que você forneceu.
+
+Substitua todo o conteúdo do seu arquivo pelo código abaixo.
+
+💻 Código HTML Completo e Atualizado
+HTML
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -238,7 +245,7 @@
         generateRiskAnalysis(data.Ticker);
     });
 
-    // NOVO: Função para limpar todos os campos
+    // Função para limpar todos os campos
     document.getElementById('clearButton').addEventListener('click', clearFields);
     
     function clearFields() {
@@ -260,7 +267,7 @@
         console.log("Todos os campos e resultados foram limpos.");
     }
 
-    // 💡 FUNÇÃO DE EXTRAÇÃO DE DADOS (parseGeneralData) - ATUALIZADA
+    // 💡 FUNÇÃO DE EXTRAÇÃO DE DADOS (parseGeneralData) - ATUALIZADA PARA FORMATO "RÓTULO: VALOR"
     function parseGeneralData() {
         let rawText = document.getElementById('generalData').value;
         if (!rawText) {
@@ -269,7 +276,6 @@
         }
 
         // 1. Limpeza e Normalização
-        // Remove caracteres e ícones que atrapalham a busca por proximidade
         rawText = rawText
             .replace(/arrow_downward|arrow_upward|help_outline|format_quote|show_chart|date_range|local_fire_department|hotel/gi, ' ')
             .replace(/\s+/g, ' ') // Substitui múltiplos espaços por um único
@@ -279,25 +285,25 @@
         let valuesFound = 0;
         
         // Esta função tenta converter o texto para um número e padronizar
-        // Adicionada lógica para conversão de Milhões e Bilhões.
         const cleanAndParse = (text, isMarketCap = false) => {
             if (!text) return null;
             
-            let cleaned = text.replace(/R\$/gi, '').replace(/\%/g, '').trim();
+            // Remove R$, % e o texto "(Valor calculado)"
+            let cleaned = text.replace(/R\$/gi, '').replace(/\%/g, '').replace(/\(Valor\s*calculado\)/gi, '').trim();
 
-            // Detecta se é Bilhão (B) no final da string
+            // Detecta se é Bilhão (B) no final da string.
             let isBillion = /B$/i.test(cleaned);
 
-            // Remove indicadores de unidade (B, M) e prepara para parse
+            // Remove indicadores de unidade (B, M, Milhões) e prepara para parse
             // Remove todos os pontos (separador de milhar) e substitui a vírgula (separador decimal) por ponto
-            cleaned = cleaned.replace(/[BM]/gi, '').replace(/\./g, '').replace(/,/g, '.').trim();
+            // Adicionado Milhões/Milhoes para o caso do texto literal
+            cleaned = cleaned.replace(/[BM]|Milhões|Milhoes/gi, '').replace(/\./g, '').replace(/,/g, '.').trim();
             
             const number = parseFloat(cleaned);
             
             if (isNaN(number)) return null;
 
-            // Se for Market Cap e o dado original for em Bilhões (B), convertemos para Milhões (M)
-            // O input de VM espera Milhões (M). 1 Bilhão = 1000 Milhões.
+            // Se for Market Cap e for detectado Bilhões, converte para Milhões (x1000)
             if (isMarketCap && isBillion) {
                 return number * 1000; 
             }
@@ -307,59 +313,67 @@
 
         const extracted = {};
 
-        // Helper para extrair o texto de valor de forma mais flexível
-        // O regex busca pelo padrão e captura o valor numérico (incluindo vírgulas/pontos, B, M)
-        const extractValue = (pattern) => {
-            // Regex que busca pelo padrão e captura o valor com R$, % ou unidade (B/M)
+        // Helper para extrair o texto de valor de forma mais flexível para Rótulo: Valor
+        // Busca: (Rótulo ou Rótulo completo) seguido por ':' e captura o valor.
+        // O valor pode incluir R$, %, números com vírgulas/pontos, B, M e o texto (Valor calculado)
+        const VALUE_PATTERN = ':\\s*([^\\n\\r]+)'; 
+
+        const extractValue = (labels) => {
+            // Cria um regex que busca por qualquer um dos rótulos fornecidos
+            // Adicionamos \s* (zero ou mais espaços) antes do ':' para flexibilidade
+            const pattern = `(?:${labels.join('|')})\\s*${VALUE_PATTERN}`;
             const match = rawText.match(new RegExp(pattern, 'i'));
             // Retorna o primeiro grupo de captura que deve ser o valor
-            return match ? match[1] : null;
+            return match ? match[1].trim() : null;
         };
         
-        // 1. Ticker (Busca pelo Ticker da Ação (RANI3) após COTAÇÃO ou Volatilidade)
-        const Ticker_match = rawText.match(/(?:COTAÇÃO da|Volatilidade histórica da)\s+([A-Z0-9]+)/i);
-        extracted.Ticker = Ticker_match ? Ticker_match[1] : null;
+        // 1. Ticker
+        const Ticker_raw = extractValue(['Ticker da Ação']);
+        extracted.Ticker = Ticker_raw ? Ticker_raw.toUpperCase() : null;
 
-        // 2. Cotação Atual (P) - Busca por "Valor atual"
-        const P_raw = extractValue('(?:Valor\\s*atual).*?R\\$\\s*([\\d\\.,]+)');
-        extracted.P = cleanAndParse(P_raw);
+        // 2. Cotação Atual (P)
+        extracted.P = cleanAndParse(extractValue(['Cotação Atual \\(P\\)']));
 
-        // 3. Lucro por Ação (LPA) - Buscando por "LPA"
-        const LPA_raw = extractValue('(?:LPA)\\s*([\\d\\.,]+)');
-        extracted.LPA = cleanAndParse(LPA_raw);
+        // 3. Lucro por Ação (LPA)
+        extracted.LPA = cleanAndParse(extractValue(['Lucro por Ação \\(LPA\\)']));
 
-        // 4. Valor Patrimonial por Ação (VPA) - Buscando por "VPA"
-        const VPA_raw = extractValue('(?:VPA)\\s*([\\d\\.,]+)');
-        extracted.VPA = cleanAndParse(VPA_raw);
+        // 4. Valor Patrimonial por Ação (VPA)
+        extracted.VPA = cleanAndParse(extractValue(['Valor Patrimonial por Ação \\(VPA\\)']));
 
-        // 5. Valor de Mercado (VM) - Market Cap (R$ Milhões)
-        // O valor 1.96B deve ser convertido para 1960.00 Milhões.
-        const VM_raw = extractValue('(?:Market\\s*Cap)\\s*R\\$\\s*([\\d\\.,]+[B])');
-        // Usamos 'true' para acionar a conversão de B para Milhões (1000x)
-        extracted.VM = cleanAndParse(VM_raw, true); 
+        // 5. Valor de Mercado (VM) - O input espera Milhões R$
+        // O texto tem "R$ 1.956,96 Milhões". O cleanAndParse converte isso para 1956.96.
+        extracted.VM = cleanAndParse(extractValue(['Valor de Mercado \\(VM\\)']), true); 
 
-        // 6. Dividend Yield (D.Y.) (%) - Busca por D.Y ou "Dividend Yield"
-        // Busca a primeira ocorrência (8,64%)
-        const DY_raw = extractValue('(?:Dividend\\s*Yield|D\\.Y)\\s*.*?([\\d\\.,]+)\\s*%');
-        // Se a busca principal falhar (ou seja, só encontrar o D.Y do painel de múltiplos - 7.35%)
-        if (!DY_raw) {
-            const DY_alt_raw = extractValue('(?:Dividend\\s*Yield\\s*%)\\s*([\\d\\.,]+)');
-            extracted.DY_pct = cleanAndParse(DY_alt_raw);
-        } else {
-            extracted.DY_pct = cleanAndParse(DY_raw);
-        }
+        // 6. Dividend Yield (D.Y.) (%)
+        extracted.DY_pct = cleanAndParse(extractValue(['Dividend Yield \\(D\\.Y\\)']));
 
         // 7. ROE (Retorno sobre Patrimônio) (%)
-        const ROE_raw = extractValue('(?:ROE).*?([\\d\\.,]+)%');
-        extracted.ROE_pct = cleanAndParse(ROE_raw);
+        extracted.ROE_pct = cleanAndParse(extractValue(['ROE \\(Retorno sobre Patrimônio\\)', 'ROE']));
 
         // 8. Margem Líquida (ML) (%)
-        const ML_raw = extractValue('(?:M\\.\\s*Líquida)\\s*([\\d\\.,]+)%');
-        extracted.ML_pct = cleanAndParse(ML_raw);
+        extracted.ML_pct = cleanAndParse(extractValue(['Margem Líquida \\(ML\\)']));
         
-        // **NOVOS CAMPOS (Que o texto não fornece em Milhões R$ e não serão extraídos):**
-        // ReceitaLiq, AtivosTotais, EBIT, DL, EBITDA, AtivoCirc, PassCirc
-        // Como o texto de exemplo (RANI3) só fornece múltiplos, a extração dos valores absolutos (Milhões R$) é impossível.
+        // 9. Receita Líquida (Milhões R$)
+        extracted.ReceitaLiq = cleanAndParse(extractValue(['Receita Líquida']));
+
+        // 10. Ativos Totais (Milhões R$)
+        extracted.AtivosTotais = cleanAndParse(extractValue(['Ativos Totais']));
+
+        // 11. EBIT (Milhões R$)
+        extracted.EBIT = cleanAndParse(extractValue(['EBIT \\(Lucro Antes Juros/Impostos\\)', 'EBIT']));
+
+        // 12. Dívida Líquida (DL) (Milhões R$)
+        extracted.DL = cleanAndParse(extractValue(['Dívida Líquida \\(DL\\)']));
+
+        // 13. EBITDA (Milhões R$)
+        extracted.EBITDA = cleanAndParse(extractValue(['EBITDA']));
+
+        // 14. Ativo Circulante (AC) (Milhões R$)
+        extracted.AtivoCirc = cleanAndParse(extractValue(['Ativo Circulante \\(AC\\)']));
+
+        // 15. Passivo Circulante (PC) (Milhões R$)
+        extracted.PassCirc = cleanAndParse(extractValue(['Passivo Circulante \\(PC\\)']));
+
 
         // Preenche os campos do formulário
         for (const [key, value] of Object.entries(extracted)) {
@@ -368,31 +382,33 @@
                 // Ticker é string, os demais são números com 2 casas decimais
                 input.value = (key === 'Ticker') ? value : value.toFixed(2);
                 valuesFound++;
+            } else if (input && key === 'Ticker' && value) {
+                 input.value = value;
+                 valuesFound++;
             }
         }
         
         if (valuesFound > 0) {
             console.log(`Sucesso! ${valuesFound} campos foram preenchidos.`);
         } else {
-            console.warn("Nenhum dado relevante encontrado. Verifique se o texto copiado inclui os indicadores-chave.");
+            console.warn("Nenhum dado relevante encontrado. Verifique se o texto copiado inclui os indicadores-chave no formato 'Rótulo: Valor'.");
         }
     }
 
     // Função auxiliar para coletar e validar dados
     function collectData() {
         try {
-            // NOVO: Ticker
+            // Ticker
             const Ticker = document.getElementById('Ticker').value.trim();
             if (!Ticker) {
                 console.error("Erro: Por favor, preencha o Ticker da Ação.");
                 return null;
             }
             
-            // Pega os valores dos inputs
+            // Pega os valores dos inputs. Os inputs de Milhões R$ são multiplicados por 1.000.000 para uso nos cálculos.
             const P = parseFloat(document.getElementById('P').value);
             const LPA = parseFloat(document.getElementById('LPA').value);
             const VPA = parseFloat(document.getElementById('VPA').value);
-            // Multiplica por 1.000.000 para converter Milhões R$ para R$ total (Mantido o fator de 1.000.000 na coleta)
             const VM = parseFloat(document.getElementById('VM').value) * 1000000; 
             const DY_pct = parseFloat(document.getElementById('DY_pct').value);
             const ROE_pct = parseFloat(document.getElementById('ROE_pct').value);
@@ -417,7 +433,7 @@
         }
     }
 
-    // Função para calcular todas as métricas derivadas (não alterada)
+    // Função para calcular todas as métricas derivadas (sem alterações)
     function calculateMetrics(data) {
         // Valuation
         const PL = data.LPA > 0 ? data.P / data.LPA : 999;
@@ -452,7 +468,7 @@
         };
     }
 
-    // Função para aplicar o sistema de pontuação (não alterada)
+    // Função para aplicar o sistema de pontuação (sem alterações)
     function scoreAnalysis(metrics) {
         let score = 0;
         let commentary = {};
@@ -505,7 +521,7 @@
         return { total: score, commentary: commentary };
     }
     
-    // Função para exibir as métricas chave (não alterada)
+    // Função para exibir as métricas chave (sem alterações)
     function displayKeyMetrics(metrics) {
         const metricsContainer = document.getElementById('keyMetrics');
         
@@ -531,7 +547,7 @@
         `).join('');
     }
 
-    // Função NOVA: Chamar o Gemini para Análise de Risco e Cenários (com Google Search)
+    // Função para Análise de Risco (sem alterações)
     async function generateRiskAnalysis(ticker) {
         const riskTextElement = document.getElementById('riskText');
         
@@ -591,7 +607,7 @@ Utilize informações atuais do Google Search para embasamento.
     }
 
 
-    // Função para chamar o Gemini e gerar o relatório final (atualizada para incluir Ticker no prompt)
+    // Função para chamar o Gemini e gerar o relatório final (sem alterações)
     async function generateReport(metrics, score, ticker) {
         const recommendationElement = document.getElementById('finalRecommendation');
         const textElement = document.getElementById('recommendationText');
