@@ -26,9 +26,20 @@
         h1 {
             @apply text-3xl md:text-4xl font-extrabold text-indigo-400 text-center mb-10 pb-4 border-b-4 border-indigo-500;
         }
+        
+        /* Alteração Gráfica conforme solicitado: Fundo Escuro (#374151) e Texto Branco (#FFFFFF) */
         .input-group input {
-            @apply bg-gray-700 text-white border border-gray-600 p-3 rounded-xl w-full focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400 transition-all;
+            background-color: #374151; /* Gray-700: Fundo escuro */
+            color: #FFFFFF; /* White: Texto branco */
+            border: 1px solid #4B5563; /* Gray-600: Borda */
+            padding: 0.75rem; /* p-3 */
+            border-radius: 0.75rem; /* rounded-xl */
+            width: 100%; /* w-full */
+            
+            /* Mantendo os efeitos de foco e transição com @apply */
+            @apply focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400 transition-all;
         }
+        
         .input-group label {
             @apply font-medium text-gray-200 mb-1 block;
         }
@@ -45,7 +56,8 @@
         <div class="mb-10 p-6 bg-gray-700 rounded-xl">
             <h2 class="text-xl font-semibold text-white mb-3">INSERIR DADOS GERAIS (Site de Terceiros)</h2>
             <div class="flex flex-col md:flex-row gap-4">
-                <textarea id="generalData" rows="4" placeholder="Cole aqui os dados da empresa (ex: cotação, LPA, VPA, etc.) em texto puro." class="bg-gray-600 text-white border border-gray-500 p-3 rounded-xl w-full md:w-3/4 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"></textarea>
+                <!-- TEXTAREA ATUALIZADA PARA USAR bg-gray-700, mantendo a consistência visual -->
+                <textarea id="generalData" rows="4" placeholder="Cole aqui os dados da empresa (ex: cotação, LPA, VPA, etc.) em texto puro." class="bg-gray-700 text-white border border-gray-600 p-3 rounded-xl w-full md:w-3/4 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"></textarea>
                 <button type="button" id="parseButton" class="w-full md:w-1/4 p-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-500 transition-colors shadow-md self-end">
                     Preencher Campos
                 </button>
