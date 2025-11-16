@@ -19,7 +19,7 @@
         }
 
         /* Alteração Gráfica: Fundo Escuro (#374151) e Texto Branco (#FFFFFF) para Inputs */
-        .input-group input {
+        .input-group input, .input-group textarea {
             background-color: #374151; /* Gray-700: Fundo escuro */
             color: #FFFFFF; /* White: Texto branco */
             border: 1px solid #4B5563; /* Gray-600: Borda */
@@ -31,7 +31,7 @@
             transition: all 0.2s ease-in-out;
         }
 
-        .input-group input:focus {
+        .input-group input:focus, .input-group textarea:focus {
             outline: none;
             border-color: #818cf8; /* indigo-400 */
             box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.5); /* ring-2 focus:ring-indigo-400 */
@@ -43,6 +43,23 @@
             color: #E5E7EB; /* gray-200 */
             margin-bottom: 0.25rem;
             display: block;
+        }
+
+        /* Estilo para o spinner/loading */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #818cf8; /* indigo-400 */
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -56,17 +73,17 @@
         <div class="mb-10 p-6 bg-gray-700 rounded-xl">
             <h2 class="text-xl font-semibold text-white mb-3">INSERIR DADOS GERAIS (Site de Terceiros)</h2>
             <div class="flex flex-col md:flex-row gap-4 mb-3">
-                <textarea id="generalData" rows="4" placeholder="Cole aqui os dados da empresa (ex: cotação, LPA, VPA, etc.) em texto puro." class="bg-gray-700 text-white border border-gray-600 p-3 rounded-xl w-full focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"></textarea>
+                <textarea id="generalData" rows="4" placeholder="Cole aqui os dados da empresa (ex: cotação, LPA, VPA, etc.) em texto puro de qualquer fonte. A IA irá extrair o máximo de informações." class="bg-gray-700 text-white border border-gray-600 p-3 rounded-xl w-full focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"></textarea>
             </div>
             <div class="flex gap-4">
-                <button type="button" id="parseButton" class="w-full md:w-1/2 p-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-500 transition-colors shadow-md">
-                    Preencher Campos
+                <button type="button" id="parseButton" class="w-full md:w-1/2 p-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-500 transition-colors shadow-md flex items-center justify-center">
+                    <span id="parseButtonText">🤖 Extrair e Preencher Campos (Gemini)</span>
                 </button>
                 <button type="button" id="clearButton" class="w-full md:w-1/2 p-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-500 transition-colors shadow-md">
                     LIMPAR TODOS OS CAMPOS
                 </button>
             </div>
-            <p class="text-sm text-gray-400 mt-2">Os dados serão extraídos e preencherão os campos abaixo.</p>
+            <p id="parseMessage" class="text-sm text-gray-400 mt-2">O Gemini irá analisar o texto colado e preencher os campos automaticamente.</p>
         </div>
         
         <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">1. Dados de Preço e Valor</h2>
@@ -202,6 +219,28 @@
         'EBITDA', 'AtivoCirc', 'PassCirc', 'EBIT'
     ];
 
+    // Esquema JSON para o Gemini extrair os dados de forma estruturada
+    const extractionSchema = {
+        type: "OBJECT",
+        properties: {
+            "Ticker": { "type": "STRING", "description": "O código de negociação da ação (ex: ITSA4). Se não encontrado, use 'N/A'" },
+            "P": { "type": "NUMBER", "description": "Cotação atual em R$ (valor numérico puro)" },
+            "LPA": { "type": "NUMBER", "description": "Lucro por Ação em R$ (valor numérico puro)" },
+            "VPA": { "type": "NUMBER", "description": "Valor Patrimonial por Ação em R$ (valor numérico puro)" },
+            "VM": { "type": "NUMBER", "description": "Valor de Mercado (em MILHÕES de R$)" },
+            "DY_pct": { "type": "NUMBER", "description": "Dividend Yield em percentual (%)" },
+            "ROE_pct": { "type": "NUMBER", "description": "ROE em percentual (%)" },
+            "ML_pct": { "type": "NUMBER", "description": "Margem Líquida em percentual (%)" },
+            "ReceitaLiq": { "type": "NUMBER", "description": "Receita Líquida (em MILHÕES de R$)" },
+            "AtivosTotais": { "type": "NUMBER", "description": "Ativos Totais (em MILHÕES de R$)" },
+            "EBIT": { "type": "NUMBER", "description": "EBIT (em MILHÕES de R$)" },
+            "DL": { "type": "NUMBER", "description": "Dívida Líquida (em MILHÕES de R$)" },
+            "EBITDA": { "type": "NUMBER", "description": "EBITDA (em MILHÕES de R$)" },
+            "AtivoCirc": { "type": "NUMBER", "description": "Ativo Circulante (em MILHÕES de R$)" },
+            "PassCirc": { "type": "NUMBER", "description": "Passivo Circulante (em MILHÕES de R$)" }
+        },
+        // Remove a exigência de 'required' para que campos ausentes sejam retornados como null
+    };
 
     document.getElementById('analysisForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -224,7 +263,8 @@
         generateReport(calculatedMetrics, analysisScore, data.Ticker);
     });
     
-    document.getElementById('parseButton').addEventListener('click', parseGeneralData);
+    // Novo listener para chamar a extração com IA
+    document.getElementById('parseButton').addEventListener('click', extractDataWithGemini);
     document.getElementById('riskAnalysisButton').addEventListener('click', function() {
         // Esconde a área principal se estiver visível e mostra o loading de risco
         document.getElementById('reportArea').classList.add('hidden');
@@ -245,12 +285,14 @@
         fieldIds.forEach(id => {
             const field = document.getElementById(id);
             if (field) {
-                field.value = "";
+                // Limpa o valor, exceto o Ticker que mantém o padrão
+                field.value = (id === 'Ticker') ? 'ITSA4' : (id === 'generalData' ? '' : '');
             }
         });
         
         // Opcional: Limpar as áreas de resultado
         document.getElementById('riskArea').classList.add('hidden');
+        document.getElementById('riskLoading').classList.add('hidden'); // Limpa o loading de risco também
         document.getElementById('reportArea').classList.add('hidden');
         document.getElementById('keyMetrics').innerHTML = '';
         document.getElementById('recommendationText').textContent = '';
@@ -259,136 +301,112 @@
         
         console.log("Todos os campos e resultados foram limpos.");
     }
+    
+    // 💡 NOVA FUNÇÃO DE EXTRAÇÃO DE DADOS USANDO GEMINI
+    async function extractDataWithGemini() {
+        const rawText = document.getElementById('generalData').value;
+        const parseButton = document.getElementById('parseButton');
+        const parseButtonText = document.getElementById('parseButtonText');
+        const parseMessage = document.getElementById('parseMessage');
 
-    // 💡 FUNÇÃO DE EXTRAÇÃO DE DADOS (parseGeneralData) - ATUALIZADA PARA FORMATO "RÓTULO: VALOR"
-    function parseGeneralData() {
-        let rawText = document.getElementById('generalData').value;
         if (!rawText) {
-            console.warn("Nenhum dado colado para extração.");
+            parseMessage.innerHTML = '<span class="text-red-400">🚨 Por favor, cole o texto com os dados da empresa na caixa acima.</span>';
             return;
         }
 
-        // 1. Limpeza e Normalização
-        rawText = rawText
-            .replace(/arrow_downward|arrow_upward|help_outline|format_quote|show_chart|date_range|local_fire_department|hotel/gi, ' ')
-            .replace(/\s+/g, ' ') // Substitui múltiplos espaços por um único
-            .replace(/\u00a0/g, ' ') // Remove o espaço irremovível HTML (&nbsp;)
-            .trim();
-
-        let valuesFound = 0;
+        // 1. Mostrar loading
+        parseButton.disabled = true;
+        parseButtonText.innerHTML = '<span class="spinner"></span> Extraindo...';
+        parseMessage.innerHTML = '<span class="text-indigo-400">Analisando o texto com Inteligência Artificial. Aguarde.</span>';
         
-        // Esta função tenta converter o texto para um número e padronizar
-        const cleanAndParse = (text, isMarketCap = false) => {
-            if (!text) return null;
-            
-            // Remove R$, % e o texto "(Valor calculado)"
-            let cleaned = text.replace(/R\$/gi, '').replace(/\%/g, '').replace(/\(Valor\s*calculado\)/gi, '').trim();
+        // Mensagem para a IA
+        const systemPrompt = `Você é um extrator de dados financeiros brasileiro. Analise o texto fornecido abaixo e extraia os indicadores-chave de análise fundamentalista. TODOS os valores monetários (Valor de Mercado, Receita Líquida, Ativos Totais, EBIT, EBITDA, Dívida Líquida, Ativo Circulante, Passivo Circulante) devem ser convertidos e retornados em MILHÕES DE REAIS (R$). Os percentuais (DY_pct, ROE_pct, ML_pct) devem ser retornados como números inteiros ou decimais (ex: 15.5 para 15,5%). Os indicadores por ação (P, LPA, VPA) devem ser em Reais (R$). Se algum dado for ambíguo ou não encontrado, retorne null para aquele campo.`;
+        const userQuery = `Extraia os dados financeiros do seguinte texto:\n\n---\n\n${rawText}`;
+        
+        try {
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: extractionSchema
+                },
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
 
-            // Detecta se é Bilhão (B) no final da string.
-            let isBillion = /B$/i.test(cleaned);
-
-            // Remove indicadores de unidade (B, M, Milhões) e prepara para parse
-            // Remove todos os pontos (separador de milhar) e substitui a vírgula (separador decimal) por ponto
-            // Adicionado Milhões/Milhoes para o caso do texto literal
-            cleaned = cleaned.replace(/[BM]|Milhões|Milhoes/gi, '').replace(/\./g, '').replace(/,/g, '.').trim();
+            let attempts = 0;
+            const maxAttempts = 5;
+            let response;
             
-            const number = parseFloat(cleaned);
-            
-            if (isNaN(number)) return null;
+            while (attempts < maxAttempts) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) {
+                        break; // Sai do loop de retries
+                    }
+                } catch (error) {
+                    console.error(`Tentativa ${attempts + 1} falhou.`, error);
+                }
+                attempts++;
+                if (attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+                }
+            }
 
-            // Se for Market Cap e for detectado Bilhões, converte para Milhões (x1000)
-            if (isMarketCap && isBillion) {
-                return number * 1000; 
+            if (!response || !response.ok) {
+                throw new Error("Falha na chamada da API após várias tentativas.");
+            }
+
+            const result = await response.json();
+            const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!jsonText) {
+                throw new Error("A resposta da IA está vazia ou malformada.");
             }
             
-            return number;
-        };
+            const extractedData = JSON.parse(jsonText);
+            let valuesFound = 0;
 
-        const extracted = {};
-
-        // Helper para extrair o texto de valor de forma mais flexível para Rótulo: Valor
-        // Busca: (Rótulo ou Rótulo completo) seguido por ':' e captura o valor.
-        // O valor pode incluir R$, %, números com vírgulas/pontos, B, M e o texto (Valor calculado)
-        const VALUE_PATTERN = ':\\s*([^\\n\\r]+)'; 
-
-        const extractValue = (labels) => {
-            // Cria um regex que busca por qualquer um dos rótulos fornecidos
-            // Adicionamos \s* (zero ou mais espaços) antes do ':' para flexibilidade
-            const pattern = `(?:${labels.join('|')})\\s*${VALUE_PATTERN}`;
-            const match = rawText.match(new RegExp(pattern, 'i'));
-            // Retorna o primeiro grupo de captura que deve ser o valor
-            return match ? match[1].trim() : null;
-        };
-        
-        // 1. Ticker
-        const Ticker_raw = extractValue(['Ticker da Ação']);
-        extracted.Ticker = Ticker_raw ? Ticker_raw.toUpperCase() : null;
-
-        // 2. Cotação Atual (P)
-        extracted.P = cleanAndParse(extractValue(['Cotação Atual \\(P\\)']));
-
-        // 3. Lucro por Ação (LPA)
-        extracted.LPA = cleanAndParse(extractValue(['Lucro por Ação \\(LPA\\)']));
-
-        // 4. Valor Patrimonial por Ação (VPA)
-        extracted.VPA = cleanAndParse(extractValue(['Valor Patrimonial por Ação \\(VPA\\)']));
-
-        // 5. Valor de Mercado (VM) - O input espera Milhões R$
-        // O texto tem "R$ 1.956,96 Milhões". O cleanAndParse converte isso para 1956.96.
-        extracted.VM = cleanAndParse(extractValue(['Valor de Mercado \\(VM\\)']), true); 
-
-        // 6. Dividend Yield (D.Y.) (%)
-        extracted.DY_pct = cleanAndParse(extractValue(['Dividend Yield \\(D\\.Y\\)']));
-
-        // 7. ROE (Retorno sobre Patrimônio) (%)
-        extracted.ROE_pct = cleanAndParse(extractValue(['ROE \\(Retorno sobre Patrimônio\\)', 'ROE']));
-
-        // 8. Margem Líquida (ML) (%)
-        extracted.ML_pct = cleanAndParse(extractValue(['Margem Líquida \\(ML\\)']));
-        
-        // 9. Receita Líquida (Milhões R$)
-        extracted.ReceitaLiq = cleanAndParse(extractValue(['Receita Líquida']));
-
-        // 10. Ativos Totais (Milhões R$)
-        extracted.AtivosTotais = cleanAndParse(extractValue(['Ativos Totais']));
-
-        // 11. EBIT (Milhões R$)
-        extracted.EBIT = cleanAndParse(extractValue(['EBIT \\(Lucro Antes Juros/Impostos\\)', 'EBIT']));
-
-        // 12. Dívida Líquida (DL) (Milhões R$)
-        extracted.DL = cleanAndParse(extractValue(['Dívida Líquida \\(DL\\)']));
-
-        // 13. EBITDA (Milhões R$)
-        extracted.EBITDA = cleanAndParse(extractValue(['EBITDA']));
-
-        // 14. Ativo Circulante (AC) (Milhões R$)
-        extracted.AtivoCirc = cleanAndParse(extractValue(['Ativo Circulante \\(AC\\)']));
-
-        // 15. Passivo Circulante (PC) (Milhões R$)
-        extracted.PassCirc = cleanAndParse(extractValue(['Passivo Circulante \\(PC\\)']));
-
-
-        // Preenche os campos do formulário
-        for (const [key, value] of Object.entries(extracted)) {
-            const input = document.getElementById(key);
-            if (input && value !== null && !isNaN(value)) {
-                // Ticker é string, os demais são números com 2 casas decimais
-                input.value = (key === 'Ticker') ? value : value.toFixed(2);
-                valuesFound++;
-            } else if (input && key === 'Ticker' && value) {
-                 input.value = value;
-                 valuesFound++;
+            // 2. Preencher os campos do formulário com os dados extraídos
+            for (const [key, value] of Object.entries(extractedData)) {
+                const input = document.getElementById(key);
+                if (input && value !== null && value !== undefined) {
+                    
+                    // Ticker é string, os demais são números
+                    if (key === 'Ticker') {
+                        input.value = String(value).toUpperCase();
+                        valuesFound++;
+                    } else if (!isNaN(parseFloat(value))) {
+                        // Todos os outros são números e precisam de 2 casas decimais
+                        input.value = parseFloat(value).toFixed(2);
+                        valuesFound++;
+                    }
+                }
             }
-        }
-        
-        if (valuesFound > 0) {
-            console.log(`Sucesso! ${valuesFound} campos foram preenchidos.`);
-        } else {
-            console.warn("Nenhum dado relevante encontrado. Verifique se o texto copiado inclui os indicadores-chave no formato 'Rótulo: Valor'.");
+            
+            // 3. Mostrar resultado
+            if (valuesFound > 0) {
+                parseMessage.innerHTML = `<span class="text-green-400">✅ Sucesso! ${valuesFound} campos foram preenchidos com os dados extraídos pelo Gemini.</span>`;
+            } else {
+                parseMessage.innerHTML = `<span class="text-yellow-400">⚠️ A extração foi concluída, mas nenhum dado relevante foi encontrado no texto colado.</span>`;
+            }
+
+        } catch (error) {
+            console.error("Erro na extração de dados com Gemini:", error);
+            parseMessage.innerHTML = `<span class="text-red-400">❌ Erro ao extrair dados. Tente formatar o texto ou preencher manualmente. (${error.message})</span>`;
+        } finally {
+            // 4. Resetar botão e loading
+            parseButton.disabled = false;
+            parseButtonText.textContent = '🤖 Extrair e Preencher Campos (Gemini)';
         }
     }
 
-    // Função auxiliar para coletar e validar dados
+
+    // Função auxiliar para coletar e validar dados (SEM ALTERAÇÕES)
     function collectData() {
         try {
             // Ticker
@@ -399,6 +417,7 @@
             }
             
             // Pega os valores dos inputs. Os inputs de Milhões R$ são multiplicados por 1.000.000 para uso nos cálculos.
+            // Os valores são lidos como Milhões R$ (ex: 1000) e convertidos internamente para o cálculo (1000 * 1000000)
             const P = parseFloat(document.getElementById('P').value);
             const LPA = parseFloat(document.getElementById('LPA').value);
             const VPA = parseFloat(document.getElementById('VPA').value);
@@ -426,7 +445,7 @@
         }
     }
 
-    // Função para calcular todas as métricas derivadas (sem alterações)
+    // Função para calcular todas as métricas derivadas (SEM ALTERAÇÕES)
     function calculateMetrics(data) {
         // Valuation
         const PL = data.LPA > 0 ? data.P / data.LPA : 999;
@@ -461,7 +480,7 @@
         };
     }
 
-    // Função para aplicar o sistema de pontuação (sem alterações)
+    // Função para aplicar o sistema de pontuação (SEM ALTERAÇÕES)
     function scoreAnalysis(metrics) {
         let score = 0;
         let commentary = {};
@@ -514,7 +533,7 @@
         return { total: score, commentary: commentary };
     }
     
-    // Função para exibir as métricas chave (sem alterações)
+    // Função para exibir as métricas chave (SEM ALTERAÇÕES)
     function displayKeyMetrics(metrics) {
         const metricsContainer = document.getElementById('keyMetrics');
         
@@ -540,7 +559,7 @@
         `).join('');
     }
 
-    // Função para Análise de Risco (sem alterações)
+    // Função para Análise de Risco (SEM ALTERAÇÕES)
     async function generateRiskAnalysis(ticker) {
         const riskTextElement = document.getElementById('riskText');
         
@@ -549,8 +568,7 @@
 2. **Cenário Otimista:** Descreva brevemente o que levaria a ação a ter um desempenho significativamente superior (bull case).
 3. **Cenário Esperado:** Descreva o cenário mais provável para a ação (base case).
 4. **Cenário Pessimista:** Descreva o que levaria a ação a ter um desempenho ruim (bear case).
-Utilize informações atuais do Google Search para embasamento.
-`;
+Utilize informações atuais do Google Search para embasamento.`;
         
         try {
             let attempts = 0;
@@ -574,57 +592,83 @@ Utilize informações atuais do Google Search para embasamento.
                         break;
                     }
                 } catch (error) {
-                    console.error("Erro na tentativa de fetch (Risco):", error);
+                    console.error(`Tentativa ${attempts + 1} de risco falhou.`, error);
                 }
                 attempts++;
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000)); // Exponential backoff
+                if (attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+                }
             }
 
             if (!response || !response.ok) {
-                throw new Error("Falha na comunicação com a API após várias tentativas.");
+                riskTextElement.textContent = "❌ Não foi possível gerar a análise de risco e cenários. Tente novamente mais tarde.";
+                return;
             }
 
             const result = await response.json();
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar o texto do relatório de risco.";
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Análise indisponível.";
             
             riskTextElement.textContent = text;
             
-
         } catch (error) {
-            console.error("Erro final ao gerar relatório de risco:", error);
-            riskTextElement.textContent = `Falha ao gerar o relatório de Risco e Cenários (IA): ${error.message}.`;
+            console.error("Erro geral na geração de análise de risco:", error);
+            riskTextElement.textContent = `❌ Erro inesperado: ${error.message}`;
         } finally {
             document.getElementById('riskLoading').classList.add('hidden');
             document.getElementById('riskArea').classList.remove('hidden');
         }
     }
+    
+    // Função para gerar o relatório final (SEM ALTERAÇÕES)
+    async function generateReport(metrics, analysisScore, ticker) {
+        const recommendationTextElement = document.getElementById('recommendationText');
+        const finalRecommendationElement = document.getElementById('finalRecommendation');
 
+        // Formatação dos comentários para o prompt
+        const scoreCommentary = Object.keys(analysisScore.commentary)
+            .map(key => analysisScore.commentary[key])
+            .join('\n- ');
 
-    // Função para chamar o Gemini e gerar o relatório final (sem alterações)
-    async function generateReport(metrics, score, ticker) {
-        const recommendationElement = document.getElementById('finalRecommendation');
-        const textElement = document.getElementById('recommendationText');
-        const totalScore = score.total;
+        const finalScore = analysisScore.total;
         
-        const recommendation = totalScore >= 4 ? 'COMPRA FORTE' : (totalScore > 0 ? 'COMPRA' : (totalScore > -4 ? 'NEUTRA' : 'VENDA'));
+        let finalRec = "";
+        let recColor = "";
         
-        const prompt = `Analise os seguintes indicadores de análise fundamentalista para a ação ${ticker}, fornecidos em formato JSON. Gere um relatório conciso e profissional, dividido em 4 parágrafos:
-1. **Valuation:** Comente o PEG Ratio, P/L, P/VPA e EV/EBITDA.
-2. **Saúde e Eficiência:** Comente o ROE, Margem Líquida e Crescimento Sustentável (g).
-3. **Endividamento e Liquidez:** Comente a Dívida Líquida/EBITDA e Liquidez Corrente.
-4. **Recomendação Final:** Dê a recomendação final de ${recommendation} e justifique-a com base na pontuação total e nos indicadores.
+        if (finalScore >= 5) {
+            finalRec = "COMPRA FORTE";
+            recColor = "bg-green-700 text-green-300";
+        } else if (finalScore >= 2) {
+            finalRec = "COMPRA MODERADA";
+            recColor = "bg-lime-700 text-lime-300";
+        } else if (finalScore >= 0) {
+            finalRec = "NEUTRO / MANTER";
+            recColor = "bg-yellow-700 text-yellow-300";
+        } else if (finalScore >= -3) {
+            finalRec = "VENDA MODERADA";
+            recColor = "bg-orange-700 text-orange-300";
+        } else {
+            finalRec = "VENDA FORTE";
+            recColor = "bg-red-700 text-red-300";
+        }
 
-Pontuação de Referência (Total de Pontos: ${totalScore}):
-* Score >= 4: Compra Forte
-* Score > 0: Compra
-* Score <= 0 e > -4: Neutra (Manter)
-* Score <= -4: Venda
 
-Indicadores e Pontuações:
-${JSON.stringify(metrics, null, 2)}
-Pontuação Detalhada:
-${JSON.stringify(score.commentary, null, 2)}
-`;
+        const prompt = `Analise a ação ${ticker} com base nos seguintes indicadores fundamentais e na pontuação de ${finalScore} pontos:
+
+Indicadores e Pontuação (Comentários):
+- ${scoreCommentary}
+
+Métricas-Chave:
+- P/L: ${metrics.PL.toFixed(2)}
+- P/VPA: ${metrics.PVPA.toFixed(2)}
+- ROE: ${metrics.ROE_pct.toFixed(2)}%
+- Dívida Líq./EBITDA: ${metrics.DLEBITDA.toFixed(2)}x
+- Crescimento Sustentável (g): ${metrics.g_pct.toFixed(2)}%
+- PEG Ratio: ${metrics.PEG.toFixed(2)}
+
+Gere um relatório fundamentalista que deve conter:
+1. Uma **análise resumida** dos pontos fortes e fracos da empresa (Valuation, Rentabilidade e Endividamento).
+2. Uma **justificativa detalhada** para a recomendação final de ${finalRec}.
+3. O relatório deve ser escrito em tom formal e persuasivo, usando no máximo 250 palavras. Não inclua a recomendação final no corpo do texto, apenas na conclusão.`;
         
         try {
             let attempts = 0;
@@ -638,7 +682,7 @@ ${JSON.stringify(score.commentary, null, 2)}
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
-                            systemInstruction: { parts: [{ text: "Você é um Analista Financeiro Sênior e seu objetivo é fornecer um relatório fundamentalista objetivo, usando Markdown para formatação e focando nos indicadores fornecidos. A recomendação final deve ser clara e baseada no score, com um breve resumo das justificativas." }] }
+                            systemInstruction: { parts: [{ text: "Você é um analista de investimento e redige relatórios de alta qualidade, objetivos e com excelente português." }] }
                         })
                     });
 
@@ -646,41 +690,29 @@ ${JSON.stringify(score.commentary, null, 2)}
                         break;
                     }
                 } catch (error) {
-                    console.error("Erro na tentativa de fetch (Relatório):", error);
+                    console.error(`Tentativa ${attempts + 1} de relatório falhou.`, error);
                 }
                 attempts++;
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000)); // Exponential backoff
+                if (attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+                }
             }
-
+            
             if (!response || !response.ok) {
-                throw new Error("Falha na comunicação com a API após várias tentativas.");
+                recommendationTextElement.textContent = "❌ Não foi possível gerar o relatório fundamentalista.";
+                return;
             }
 
             const result = await response.json();
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar o texto do relatório.";
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Relatório indisponível.";
             
-            textElement.textContent = text;
-            recommendationElement.textContent = recommendation;
+            recommendationTextElement.textContent = text;
+            finalRecommendationElement.textContent = `RECOMENDAÇÃO: ${finalRec}`;
+            finalRecommendationElement.className = `text-center text-4xl font-extrabold mt-6 p-3 rounded-lg ${recColor}`;
             
-            // Define a cor da recomendação
-            let colorClass = 'bg-gray-600';
-            if (recommendation === 'COMPRA FORTE') {
-                colorClass = 'bg-green-700 text-white';
-            } else if (recommendation === 'COMPRA') {
-                colorClass = 'bg-lime-600 text-white';
-            } else if (recommendation === 'NEUTRA') {
-                colorClass = 'bg-yellow-600 text-white';
-            } else if (recommendation === 'VENDA') {
-                colorClass = 'bg-red-700 text-white';
-            }
-            recommendationElement.className = `text-center text-4xl font-extrabold mt-6 p-3 rounded-lg ${colorClass}`;
-
-
         } catch (error) {
-            console.error("Erro final ao gerar relatório:", error);
-            textElement.textContent = `Falha ao gerar o relatório (IA): ${error.message}.`;
-            recommendationElement.textContent = 'ERRO';
-            recommendationElement.className = 'text-center text-4xl font-extrabold mt-6 p-3 rounded-lg bg-red-900 text-white';
+            console.error("Erro geral na geração de relatório:", error);
+            recommendationTextElement.textContent = `❌ Erro inesperado: ${error.message}`;
         } finally {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('reportArea').classList.remove('hidden');
