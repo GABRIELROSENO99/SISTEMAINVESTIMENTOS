@@ -1,555 +1,517 @@
-
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Análise de Ações - Metodologia PEG</title>
-
+    <title>Análise Fundamentalista Completa</title>
+    <!-- Incluindo Tailwind CSS e Fonte Inter -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
-
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-
+    
     <style>
-
-        /* Estilos base para Dark Mode e Profissionalismo */
-
+        /* Estilos base para Dark Mode */
         body {
-
             font-family: 'Inter', sans-serif;
-
-            background-color: #111827; /* Dark Blue/Gray 900 */
-
+            background-color: #0F172A; /* Slate 900 */
             color: #E5E7EB; /* Gray 200 */
-
+            padding: 20px;
         }
-
         .container {
-
-            max-width: 800px;
-
+            max-width: 900px;
             margin: 0 auto;
-
-            /* Dark mode container */
-
-            @apply bg-gray-800 p-10 rounded-2xl shadow-2xl;
-
+            @apply bg-gray-800 p-8 md:p-12 rounded-3xl shadow-2xl;
         }
-
         h1 {
-
-            /* Bright color for dark mode header and border for professional look */
-
-            /* AUMENTADO DE text-3xl PARA text-4xl */
-
-            @apply text-4xl font-extrabold text-cyan-400 text-center mb-8 pb-3 border-b-4 border-cyan-500 flex items-center justify-center gap-3;
-
+            @apply text-3xl md:text-4xl font-extrabold text-indigo-400 text-center mb-10 pb-4 border-b-4 border-indigo-500;
         }
-
-        .input-group {
-
-            @apply mb-5 flex items-center gap-4;
-
-        }
-
-        .input-group label {
-
-            @apply flex-1 font-medium text-gray-200 flex items-center;
-
-        }
-
         .input-group input {
-
-            /* CORREÇÃO DE CONTRASTE: Texto branco em fundo cinza escuro para máxima legibilidade */
-
-            background-color: #374151; /* gray-700 */
-
-            color: #FFFFFF; /* Texto branco */
-
-            border: 1px solid #4B5563; /* gray-600 */
-
-            padding: 0.75rem; /* p-3 */
-
-            border-radius: 0.75rem; /* rounded-xl */
-
-            flex: 1; /* flex-1 */
-
-            transition: all 150ms ease-in-out;
-
+            @apply bg-gray-700 text-white border border-gray-600 p-3 rounded-xl w-full focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400 transition-all;
         }
-
-        .input-group input:focus {
-
-            outline: none;
-
-            border-color: #06B6D4; /* focus:border-cyan-500 */
-
-            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.5); /* focus:ring-cyan-500 */
-
+        .input-group label {
+            @apply font-medium text-gray-200 mb-1 block;
         }
-
-
-
-        .info-icon {
-
-            @apply cursor-pointer text-cyan-400 font-bold ml-2 transition duration-150 hover:text-cyan-300 text-base;
-
-        }
-
-        .info-tooltip {
-
-            display: none;
-
-            position: fixed;
-
-            background-color: #0F172A; /* Slate 900 for deep contrast */
-
-            color: white;
-
-            padding: 8px 12px;
-
-            border-radius: 8px;
-
-            font-size: 13px;
-
-            z-index: 1000;
-
-            max-width: 300px;
-
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-
-            pointer-events: none;
-
-        }
-
-        /* Definições de Cores Visuais (Ajustadas para dark mode) */
-
-        .status-barato { color: #34D399; font-weight: bold; } /* Verde - Emerald 400 */
-
-        .status-alerta { color: #FCD34D; font-weight: bold; } /* Amarelo - Amber 300 */
-
-        .status-caro { color: #F87171; font-weight: bold; } /* Vermelho - Red 400 */
-
-        .status-muito-caro { color: #FCA5A5; font-weight: bold; } /* Red mais suave para dark mode */
-
     </style>
-
 </head>
-
 <body>
 
-
-
 <div class="container">
-
-    <h1>
-
-        Ferramenta de Análise de Ações (Método PEG Ratio)
-
-        <span class="info-icon" 
-
-            onmouseover="showTooltip(this, 'O PEG Ratio (Price/Earnings to Growth) é um indicador que ajusta o P/L (Preço/Lucro) pelo crescimento esperado dos lucros. É usado para determinar se uma ação está cara ou barata em relação ao seu potencial de crescimento futuro. PEG < 1 é considerado barato; PEG = 1 é justo; PEG > 1 é caro.')" 
-
-            onmouseout="hideTooltip()">i</span>
-
-    </h1>
-
+    <h1>Análise Fundamentalista Completa de Ações</h1>
     <form id="analysisForm">
-
-        <p class="text-gray-300 mb-6">Insira os dados da Ação (últimos 12 meses):</p>
-
-
-
-        <div class="input-group">
-
-            <label for="currentPrice">Cotação Atual (P) (R$)</label>
-
-            <input type="number" id="currentPrice" step="0.01" required value="8.49">
-
-        </div>
-
-
-
-        <div class="input-group">
-
-            <label for="lpa">Lucro por Ação (LPA) (R$)</label>
-
-            <input type="number" id="lpa" step="0.01" required value="1.69">
-
-        </div>
-
-
-
-        <div class="input-group">
-
-            <label for="dy">
-
-                DIVIDEND YIELD (D.Y.) (%) 
-
-                <span class="info-icon" onmouseover="showTooltip(this, 'refere-se ao Rendimento de Dividendos, o indicador que verifica a performance da organização mediante os proventos que foram pagos aos acionistas ao longo dos últimos 12 meses do ano. Formula: (Dividendos Pagos / Preço da Ação) * 100.')" onmouseout="hideTooltip()">i</span>
-
-            </label>
-
-            <input type="number" id="dy" step="0.01" required value="8.64">
-
-        </div>
-
-
-
-        <div class="input-group">
-
-            <label for="roe">
-
-                ROE (Retorno sobre Patrimônio) (%) 
-
-                <span class="info-icon" onmouseover="showTooltip(this, 'Mede a capacidade da empresa de gerar lucro a partir de seu patrimônio líquido. É essencial para calcular o Crescimento Sustentável. Formula: (Lucro Líquido / Patrimônio Líquido) * 100.')" onmouseout="hideTooltip()">i</span>
-
-            </label>
-
-            <input type="number" id="roe" step="0.01" required value="27.22">
-
-        </div>
-
-
-
-        <button type="submit" class="w-full p-3 bg-green-600 text-white font-bold rounded-xl mt-5 hover:bg-green-500 transition-colors shadow-lg">
-
-            Analisar Ação
-
-        </button>
-
-    </form>
-
-
-
-    <div id="results" class="result-section hidden bg-gray-700 p-6 rounded-xl border border-gray-600 mt-8 shadow-inner">
-
-        <h2 class="text-xl font-semibold text-cyan-400 text-center mb-4">Resultados da Análise PEG Ratio</h2>
-
+        <p class="text-gray-300 mb-8 text-center text-lg">Insira os dados da empresa (valores em R$ ou percentuais) ou cole o texto de fontes externas para preenchimento automático.</p>
         
-
-        <div class="result-item flex justify-between py-2 border-b border-gray-600"><span>P/L (Preço/Lucro) Atual:</span> <strong id="plResult"></strong></div>
-
-        <div class="result-item flex justify-between py-2 border-b border-gray-600"><span>Crescimento Sustentável Esperado (g):</span> <strong id="gResult"></strong></div>
-
-        <div class="result-item flex justify-between py-2"><span>PEG Ratio (P/L sobre Crescimento):</span> <strong id="pegResult"></strong></div>
-
-        
-
-        <hr class="my-4 border-gray-600">
-
-        
-
-        <div class="result-item flex justify-between py-2 border-b border-gray-600"><span>**Preço Aceitável (Justo) [PEG=1]:**</span> <strong id="priceJusto"></strong></div>
-
-        <div class="result-item flex justify-between py-2"><span>**Preço Caro (Sobrevalorizado) [PEG=3]:**</span> <strong id="priceCaro"></strong></div>
-
-        
-
-        <hr class="my-4 border-gray-600">
-
-
-
-        <div class="result-item flex justify-between py-2 mb-2"><span>**STATUS DA AÇÃO:**</span> <strong id="statusFinal"></strong></div>
-
-        <div id="statusExplanation" class="text-sm italic text-gray-400 p-3 bg-gray-900 rounded-lg">
-
+        <!-- NOVO CAMPO: INSERIR DADOS GERAIS -->
+        <div class="mb-10 p-6 bg-gray-700 rounded-xl">
+            <h2 class="text-xl font-semibold text-white mb-3">INSERIR DADOS GERAIS (Site de Terceiros)</h2>
+            <div class="flex flex-col md:flex-row gap-4">
+                <textarea id="generalData" rows="4" placeholder="Cole aqui os dados da empresa (ex: cotação, LPA, VPA, etc.) em texto puro." class="bg-gray-600 text-white border border-gray-500 p-3 rounded-xl w-full md:w-3/4 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"></textarea>
+                <button type="button" id="parseButton" class="w-full md:w-1/4 p-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-500 transition-colors shadow-md self-end">
+                    Preencher Campos
+                </button>
             </div>
+            <p class="text-sm text-gray-400 mt-2">Os dados serão extraídos e preencherão os campos abaixo.</p>
+        </div>
 
-        
+        <!-- SEÇÃO 1: VALUATION & PREÇO -->
+        <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">1. Dados de Preço e Valor</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="input-group">
+                <label for="P">Cotação Atual (P) (R$)</label>
+                <!-- Valor atualizado para 11.96 (ITSA4) -->
+                <input type="number" id="P" step="0.01" required value="11.96">
+            </div>
+            <div class="input-group">
+                <label for="LPA">Lucro por Ação (LPA) (R$)</label>
+                <!-- Valor atualizado para 1.45 (ITSA4) -->
+                <input type="number" id="LPA" step="0.01" required value="1.45">
+            </div>
+            <div class="input-group">
+                <label for="VPA">Valor Patrimonial por Ação (VPA) (R$)</label>
+                <!-- Valor atualizado para 8.41 (ITSA4) -->
+                <input type="number" id="VPA" step="0.01" required value="8.41">
+            </div>
+            <div class="input-group">
+                <label for="VM">Valor de Mercado (VM) (Milhões R$)</label>
+                <!-- Valor atualizado para 131530.00 (131.53B) -->
+                <input type="number" id="VM" step="0.01" required value="131530.00">
+            </div>
+            <div class="input-group">
+                <label for="DY_pct">Dividend Yield (D.Y.) (%)</label>
+                <!-- Valor atualizado para 8.50 (ITSA4) -->
+                <input type="number" id="DY_pct" step="0.01" required value="8.50">
+            </div>
+        </div>
 
+        <!-- SEÇÃO 2: EFICIÊNCIA & RENTABILIDADE -->
+        <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">2. Dados de Lucro e Eficiência</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="input-group">
+                <label for="ROE_pct">ROE (Retorno sobre Patrimônio) (%)</label>
+                <!-- Valor atualizado para 17.22 (ITSA4) -->
+                <input type="number" id="ROE_pct" step="0.01" required value="17.22">
+            </div>
+            <div class="input-group">
+                <label for="ML_pct">Margem Líquida (ML) (%)</label>
+                <!-- Valor atualizado para 193.63 (ITSA4) - Valor alto de Holding -->
+                <input type="number" id="ML_pct" step="0.01" required value="193.63">
+            </div>
+            <div class="input-group">
+                <label for="ReceitaLiq">Receita Líquida (Milhões R$)</label>
+                <input type="number" id="ReceitaLiq" step="0.01" required value="3000">
+            </div>
+            <div class="input-group">
+                <label for="AtivosTotais">Ativos Totais (Milhões R$)</label>
+                <input type="number" id="AtivosTotais" step="0.01" required value="6000">
+            </div>
+            <div class="input-group">
+                <label for="EBIT">EBIT (Lucro Antes Juros/Impostos) (Milhões R$)</label>
+                <input type="number" id="EBIT" step="0.01" required value="1200">
+            </div>
+        </div>
+
+        <!-- SEÇÃO 3: ENDIVIDAMENTO & LIQUIDEZ -->
+        <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">3. Dados de Dívida e Caixa</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            <div class="input-group">
+                <label for="DL">Dívida Líquida (DL) (Milhões R$)</label>
+                <input type="number" id="DL" step="0.01" required value="1000">
+            </div>
+            <div class="input-group">
+                <label for="EBITDA">EBITDA (Milhões R$)</label>
+                <input type="number" id="EBITDA" step="0.01" required value="1500">
+            </div>
+            <div class="input-group">
+                <label for="AtivoCirc">Ativo Circulante (AC) (Milhões R$)</label>
+                <input type="number" id="AtivoCirc" step="0.01" required value="2500">
+            </div>
+            <div class="input-group">
+                <label for="PassCirc">Passivo Circulante (PC) (Milhões R$)</label>
+                <input type="number" id="PassCirc" step="0.01" required value="1500">
+            </div>
+        </div>
+
+        <button type="submit" id="generateButton" class="w-full p-4 bg-indigo-600 text-white font-extrabold text-lg rounded-xl hover:bg-indigo-500 transition-colors shadow-xl">
+            Gerar Relatório de Análise Fundamentalista
+        </button>
+    </form>
+    
+    <!-- ÁREA DE RESULTADOS -->
+    <div id="loading" class="hidden text-center mt-10 p-5 bg-gray-700 rounded-xl">
+        <div class="text-indigo-400 text-xl font-semibold animate-pulse">
+            Analisando dados e gerando relatório... (Isso pode levar alguns segundos)
+        </div>
     </div>
 
+    <div id="reportArea" class="hidden bg-gray-700 p-6 rounded-xl border border-gray-600 mt-10 shadow-inner">
+        <h2 class="text-3xl font-bold text-indigo-400 text-center mb-6">Relatório de Recomendações</h2>
+        
+        <!-- Seção de Indicadores Chave -->
+        <div id="keyMetrics" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <!-- Será preenchido pelo JS -->
+        </div>
+
+        <!-- Seção de Relatório do Gemini -->
+        <div id="geminiReport" class="bg-gray-900 p-6 rounded-xl border border-indigo-700">
+            <h3 class="text-xl font-semibold text-white mb-4">Relatório e Recomendação Final (IA)</h3>
+            <div id="recommendationText" class="text-gray-300 leading-relaxed whitespace-pre-wrap"></div>
+            <div id="finalRecommendation" class="text-center text-4xl font-extrabold mt-6 p-3 rounded-lg"></div>
+        </div>
+    </div>
 </div>
 
-
-
-<div id="tooltip" class="info-tooltip"></div>
-
-
-
 <script>
-
-    // Função para mostrar a dica (tooltip)
-
-    function showTooltip(element, text) {
-
-        const tooltip = document.getElementById('tooltip');
-
-        tooltip.textContent = text;
-
-        
-
-        const rect = element.getBoundingClientRect();
-
-        
-
-        // Posicionamento próximo ao ícone 'i' (usando fixed position)
-
-        tooltip.style.left = (rect.right + 5) + 'px';
-
-        tooltip.style.top = (rect.top) + 'px';
-
-        
-
-        tooltip.style.display = 'block';
-
-    }
-
-
-
-    // Função para esconder a dica
-
-    function hideTooltip() {
-
-        document.getElementById('tooltip').style.display = 'none';
-
-    }
-
-
+    const apiKey = ""; // API Key para o Gemini
+    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
 
     document.getElementById('analysisForm').addEventListener('submit', function(e) {
-
         e.preventDefault();
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('reportArea').classList.add('hidden');
+        document.getElementById('keyMetrics').innerHTML = '';
 
-        runAnalysis();
+        const data = collectData();
+        if (!data) return;
 
+        const calculatedMetrics = calculateMetrics(data);
+        const analysisScore = scoreAnalysis(calculatedMetrics);
+        
+        displayKeyMetrics(calculatedMetrics);
+        
+        // Chamar a API do Gemini para gerar o relatório final
+        generateReport(calculatedMetrics, analysisScore);
     });
+    
+    document.getElementById('parseButton').addEventListener('click', parseGeneralData);
 
-
-
-    // Função principal de análise
-
-    function runAnalysis() {
-
-        // 1. Coleta de Dados e Conversão para Decimal
-
-        const P = parseFloat(document.getElementById('currentPrice').value);
-
-        const LPA = parseFloat(document.getElementById('lpa').value);
-
-        const DY_pct = parseFloat(document.getElementById('dy').value);
-
-        const ROE_pct = parseFloat(document.getElementById('roe').value);
-
-        
-
-        const statusElement = document.getElementById('statusFinal');
-
-        const explanationElement = document.getElementById('statusExplanation');
-
-        const resultsDiv = document.getElementById('results');
-
-
-
-        // Validação de dados de entrada: Must be positive numbers
-
-        if (isNaN(P) || isNaN(LPA) || isNaN(DY_pct) || isNaN(ROE_pct) || P <= 0 || LPA <= 0 || ROE_pct <= 0) {
-
-            console.error("Erro: Por favor, insira valores válidos e positivos.");
-
-            statusElement.textContent = 'ERRO: Valores inválidos ou nulos.';
-
-            statusElement.className = 'status-muito-caro';
-
-            explanationElement.textContent = 'Verifique se todos os campos estão preenchidos corretamente com números positivos.';
-
-            resultsDiv.style.display = 'block';
-
+    // Função para tratar o texto colado e preencher os campos
+    function parseGeneralData() {
+        const rawText = document.getElementById('generalData').value;
+        if (!rawText) {
+            console.warn("Nenhum dado colado para extração.");
             return;
-
         }
 
-
-
-        const ROE = ROE_pct / 100;
-
-        const DY = DY_pct / 100;
-
-
-
-        // 2. Cálculos Iniciais
-
-        const PL = P / LPA;
-
-
-
-        // DPS (Dividendo Por Ação) é necessário para calcular o Payout
-
-        const DPS = P * DY;
-
-        const Payout = DPS / LPA;
-
+        let valuesFound = 0;
         
+        // Esta função tenta converter o texto para um número e padronizar
+        // Adicionada lógica para conversão de Milhões e Bilhões.
+        const cleanAndParse = (text, isMarketCap = false) => {
+            if (!text) return null;
+            
+            let cleaned = text.replace(/R\$/gi, '').replace(/\%/g, '').trim();
 
-        if (Payout > 1.2) { 
+            // Detecta se é Bilhão (B) no final da string
+            let isBillion = /B$/i.test(cleaned);
 
-            console.warn("Atenção: Payout alto demais (>120%), o que indica que a empresa pagou mais do que lucrou. Verifique a sustentabilidade do DY.");
+            // Remove indicadores de unidade (B, M) e prepara para parse
+            // Remove todos os pontos (separador de milhar) e substitui a vírgula (separador decimal) por ponto
+            cleaned = cleaned.replace(/[BM]/gi, '').replace(/\./g, '').replace(/,/g, '.').trim();
+            
+            const number = parseFloat(cleaned);
+            
+            if (isNaN(number)) return null;
 
+            // Se for Market Cap e o dado original for em Bilhões (B), convertemos para Milhões (M)
+            // O input de VM espera Milhões (M). 1 Bilhão = 1000 Milhões.
+            if (isMarketCap && isBillion) {
+                return number * 1000; 
+            }
+            
+            return number;
+        };
+
+        const extracted = {};
+
+        // Helper para extrair o texto de valor de forma mais flexível
+        // O regex busca pelo padrão e captura o valor numérico (incluindo vírgulas/pontos)
+        const extractValue = (pattern) => {
+            const match = rawText.match(new RegExp(pattern, 'i'));
+            // Retorna o primeiro grupo de captura que deve ser o valor
+            return match ? match[1] : null;
+        };
+        
+        // 1. Cotação Atual (P) - Busca por "Valor atual" ou "Cotação"
+        const P_raw = extractValue('(?:Valor atual|Cotação\\s*Atual).*?R\\$\\s*([\\d\\.,]+)');
+        extracted.P = cleanAndParse(P_raw);
+
+        // 2. Lucro por Ação (LPA)
+        const LPA_raw = extractValue('(?:LPA)\\s*(?:format_quote)?\\s*([\\d\\.,]+)');
+        extracted.LPA = cleanAndParse(LPA_raw);
+
+        // 3. Valor Patrimonial por Ação (VPA)
+        const VPA_raw = extractValue('(?:VPA)\\s*(?:format_quote)?\\s*([\\d\\.,]+)');
+        extracted.VPA = cleanAndParse(VPA_raw);
+
+        // 4. Valor de Mercado (VM) - Market Cap (R$ Milhões)
+        // Usa a flag 'B' para identificar bilhões e acionar a conversão
+        const VM_raw = extractValue('(?:Market Cap)\\s*R\\$\\s*([\\d\\.,]+[B])');
+        extracted.VM = cleanAndParse(VM_raw, true); 
+
+        // 5. Dividend Yield (D.Y.) (%) - Busca por D.Y. ou Dividend Yield seguido por %
+        const DY_raw = extractValue('(?:Dividend Yield|D\\.Y)\\s*.*?([\\d\\.,]+)\\s*\\%');
+        extracted.DY_pct = cleanAndParse(DY_raw);
+
+        // 6. ROE (Retorno sobre Patrimônio) (%)
+        const ROE_raw = extractValue('(?:ROE)\\s*(?:format_quote)?\\s*([\\d\\.,]+)');
+        extracted.ROE_pct = cleanAndParse(ROE_raw);
+
+        // 7. Margem Líquida (ML) (%)
+        const ML_raw = extractValue('(?:M\\. Líquida)\\s*(?:format_quote)?\\s*([\\d\\.,]+)');
+        extracted.ML_pct = cleanAndParse(ML_raw);
+        
+        // Outros indicadores existentes no seu formulário (EBITDA, DL, etc.) não puderam ser
+        // extraídos diretamente como valores em R$ Milhões no texto de exemplo e serão ignorados.
+
+        // Preenche os campos do formulário
+        for (const [key, value] of Object.entries(extracted)) {
+            const input = document.getElementById(key);
+            if (input && value !== null && !isNaN(value)) {
+                // Preenche o valor com 2 casas decimais
+                input.value = value.toFixed(2);
+                valuesFound++;
+            }
         }
-
-
-
-        // Crescimento Sustentável (g): g = (1 - Payout) * ROE
-
-        const retentionRate = 1 - Payout;
-
-        // g em percentual para uso no PEG 
-
-        const g_pct = retentionRate * ROE * 100; 
-
         
-
-        if (g_pct <= 0) {
-
-            console.warn("Crescimento Sustentável (g) é zero ou negativo.");
-
-            document.getElementById('pegResult').textContent = 'N/A';
-
-            document.getElementById('priceJusto').textContent = 'R$ 0.00';
-
-            document.getElementById('priceCaro').textContent = 'R$ 0.00';
-
-            statusElement.textContent = 'CRESCIMENTO NEGATIVO/NULO (PEG inválido)';
-
-            statusElement.className = 'status-muito-caro';
-
-            explanationElement.textContent = 'O Crescimento Sustentável é nulo ou negativo. O PEG Ratio não é aplicável. A empresa precisa reter mais lucros ou aumentar o ROE para ter um crescimento interno.';
-
-            resultsDiv.style.display = 'block';
-
-            return;
-
+        if (valuesFound > 0) {
+            // Feedback para o usuário sobre o preenchimento
+            alert(`Sucesso! ${valuesFound} campos foram preenchidos.`);
+        } else {
+            alert("Nenhum dado relevante encontrado. Por favor, cole o texto padrão do site.");
         }
-
-
-
-        // 3. Cálculo do PEG Ratio
-
-        const PEG = PL / g_pct;
-
-
-
-        // 4. Determinação dos Preços Justo e Caro
-
-        // Preço Aceitável (Justo): PEG = 1 => PL_justo = g
-
-        const PL_justo = g_pct;
-
-        const priceJusto = PL_justo * LPA;
-
-
-
-        // Preço Caro (Sobrevalorizado): PEG = 3 => PL_caro = 3 * g
-
-        const PL_caro = 3 * g_pct;
-
-        const priceCaro = PL_caro * LPA;
-
-
-
-        // 5. Determinação do Status Visual e Cores
-
-        let statusText = '';
-
-        let statusClass = '';
-
-        let explanationText = ''; // Variável para armazenar a explicação
-
-
-
-        if (P < priceJusto * 0.9) { 
-
-            // 10% abaixo do preço justo (PEG < 0.9)
-
-            statusText = `MUITO BARATA (PEG ${PEG.toFixed(2)}). Excelente Margem de Segurança.`;
-
-            statusClass = 'status-barato';
-
-            explanationText = `O PEG Ratio (${PEG.toFixed(2)}) é substancialmente menor que 1. Isso significa que o P/L Atual (${PL.toFixed(2)}) é muito baixo quando comparado ao Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%). O mercado está precificando a ação com grande desconto em relação ao seu potencial de crescimento.`;
-
-        } else if (P <= priceJusto * 1.1) { 
-
-            // Entre 0.9x Justo e 1.1x Justo (Próximo de PEG=1)
-
-            statusText = `ACEITÁVEL / PREÇO JUSTO (PEG ${PEG.toFixed(2)}).`;
-
-            statusClass = 'status-alerta';
-
-            explanationText = `O PEG Ratio está próximo de 1. O P/L Atual (${PL.toFixed(2)}) e o Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%) estão alinhados. O preço é considerado justo, pois o mercado está pagando pelo lucro na mesma proporção em que a empresa cresce.`;
-
-        } else if (P < priceCaro) { 
-
-            // Acima do Justo mas abaixo do Caro (PEG < 3)
-
-            statusText = `CARA / PRÓXIMA DO LIMITE (PEG ${PEG.toFixed(2)}). Cuidado.`;
-
-            statusClass = 'status-caro';
-
-            explanationText = `O PEG Ratio está entre 1 e 3. Isso indica que o P/L Atual (${PL.toFixed(2)}) é alto em relação ao Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%). O mercado está pagando um prêmio, o que sugere que a empresa precisa crescer acima de sua média histórica para justificar este preço.`;
-
-        } else { 
-
-            // Acima do Preço Caro (PEG >= 3)
-
-            statusText = `MUITO CARA / SOBREVALORIZADA (PEG ${PEG.toFixed(2)}). Risco Alto.`;
-
-            statusClass = 'status-muito-caro';
-
-            explanationText = `O PEG Ratio é maior que 3. O P/L Atual (${PL.toFixed(2)}) é muito superior ao Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%). A ação está muito cara, sinalizando que as expectativas do mercado para o crescimento futuro estão excessivamente otimistas.`;
-
-        }
-
-
-
-        // 6. Exibição dos Resultados
-
-        document.getElementById('plResult').textContent = PL.toFixed(2);
-
-        document.getElementById('gResult').textContent = g_pct.toFixed(2) + '%';
-
-        document.getElementById('pegResult').textContent = PEG.toFixed(3);
-
-        
-
-        document.getElementById('priceJusto').textContent = `R$ ${priceJusto.toFixed(2)}`;
-
-        document.getElementById('priceCaro').textContent = `R$ ${priceCaro.toFixed(2)}`;
-
-        
-
-        statusElement.textContent = statusText;
-
-        statusElement.className = statusClass;
-
-        
-
-        // Exibe a explicação
-
-        explanationElement.textContent = explanationText; 
-
-        
-
-        resultsDiv.style.display = 'block';
-
     }
 
+
+    // Função auxiliar para coletar e validar dados
+    function collectData() {
+        try {
+            // Pega os valores dos inputs
+            const P = parseFloat(document.getElementById('P').value);
+            const LPA = parseFloat(document.getElementById('LPA').value);
+            const VPA = parseFloat(document.getElementById('VPA').value);
+            // Multiplica por 1.000.000 para converter Milhões R$ para R$ total (Mantido o fator de 1.000.000 na coleta)
+            const VM = parseFloat(document.getElementById('VM').value) * 1000000; 
+            const DY_pct = parseFloat(document.getElementById('DY_pct').value);
+            const ROE_pct = parseFloat(document.getElementById('ROE_pct').value);
+            const ML_pct = parseFloat(document.getElementById('ML_pct').value);
+            const ReceitaLiq = parseFloat(document.getElementById('ReceitaLiq').value) * 1000000;
+            const AtivosTotais = parseFloat(document.getElementById('AtivosTotais').value) * 1000000;
+            const DL = parseFloat(document.getElementById('DL').value) * 1000000;
+            const EBITDA = parseFloat(document.getElementById('EBITDA').value) * 1000000;
+            const AtivoCirc = parseFloat(document.getElementById('AtivoCirc').value) * 1000000;
+            const PassCirc = parseFloat(document.getElementById('PassCirc').value) * 1000000;
+            const EBIT = parseFloat(document.getElementById('EBIT').value) * 1000000;
+            
+            if ([P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT].some(isNaN)) {
+                // Em vez de alert(), usaremos console.error
+                console.error("Erro: Por favor, preencha todos os campos com números válidos.");
+                return null;
+            }
+
+            return { P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT };
+        } catch (error) {
+            console.error("Erro na coleta de dados:", error);
+            return null;
+        }
+    }
+
+    // Função para calcular todas as métricas derivadas
+    function calculateMetrics(data) {
+        // Valuation
+        const PL = data.LPA > 0 ? data.P / data.LPA : 999;
+        const PVPA = data.VPA > 0 ? data.P / data.VPA : 999;
+        const EVEBITDA = data.EBITDA > 0 ? (data.VM + data.DL) / data.EBITDA : 999;
+        
+        // Eficiência / Rentabilidade
+        const ROE = data.ROE_pct / 100;
+        const DPS = data.P * (data.DY_pct / 100);
+        const Payout = data.LPA > 0 ? DPS / data.LPA : 0;
+        const retentionRate = 1 - Payout;
+        // Crescimento Sustentável (g) de Gordon: g = ROE * (1 - Payout)
+        const g_pct = retentionRate * ROE * 100; 
+        const MargemLiq = data.ML_pct / 100;
+        const GiroAtivo = data.AtivosTotais > 0 ? data.ReceitaLiq / data.AtivosTotais : 0;
+
+        // PEG Ratio
+        // g_pct precisa ser um número positivo (maior que 1 para ser % ou maior que 0.01 para ser decimal)
+        const PEG = g_pct > 0.1 ? PL / g_pct : 999; 
+
+        // Endividamento / Liquidez
+        const DLEBITDA = data.EBITDA > 0 ? data.DL / data.EBITDA : 999;
+        const LiquidezCorrente = data.PassCirc > 0 ? data.AtivoCirc / data.PassCirc : 999;
+        // Juros estimado em 5% da DL (para ter uma base, ideal seria input de Juros)
+        const jurosEstimado = data.DL * 0.05; 
+        const CoberturaJuros = jurosEstimado > 0 ? data.EBIT / jurosEstimado : 999;
+
+        return {
+            PL, PVPA, EVEBITDA, DY_pct: data.DY_pct,
+            ROE_pct: data.ROE_pct, MargemLiq, GiroAtivo, g_pct,
+            PEG, DLEBITDA, LiquidezCorrente, CoberturaJuros
+        };
+    }
+
+    // Função para aplicar o sistema de pontuação
+    function scoreAnalysis(metrics) {
+        let score = 0;
+        let commentary = {};
+
+        // 1. PEG Ratio
+        if (metrics.PEG < 1.0) { score += 3; commentary.peg = "Excelente: PEG abaixo de 1 indica que a ação está muito barata em relação ao seu potencial de crescimento sustentável. (+3)"; }
+        else if (metrics.PEG < 2.0) { score += 1; commentary.peg = "Aceitável: PEG entre 1 e 2. O preço é justo ou levemente esticado, mas o crescimento justifica o P/L. (+1)"; }
+        else { score -= 1; commentary.peg = "Alerta: PEG acima de 2. A ação pode estar cara, pois o crescimento não justifica o P/L atual. (-1)"; }
+        
+        // 2. P/L
+        if (metrics.PL < 10) { score += 1; commentary.pl = "Bom: P/L abaixo de 10. Sugere um valuation atrativo. (+1)"; }
+        else if (metrics.PL > 20) { score -= 1; commentary.pl = "Caro: P/L acima de 20. O mercado tem altas expectativas de lucro futuro. (-1)"; }
+        else { commentary.pl = "Neutro: P/L na média do mercado. (0)"; }
+
+        // 3. P/VPA
+        if (metrics.PVPA < 1.0) { score += 1; commentary.pvpa = "Muito Bom: P/VPA abaixo de 1. A ação está sendo negociada abaixo do seu valor patrimonial líquido. (+1)"; }
+        else if (metrics.PVPA > 3.0) { score -= 1; commentary.pvpa = "Caro: P/VPA acima de 3. Alto prêmio sobre o valor contábil. (-1)"; }
+        else { commentary.pvpa = "Aceitável: P/VPA entre 1 e 3. (0)"; }
+
+        // 4. EV/EBITDA
+        if (metrics.EVEBITDA < 7) { score += 1; commentary.evebitda = "Bom: EV/EBITDA abaixo de 7. Valuation atrativo em relação ao lucro operacional. (+1)"; }
+        else if (metrics.EVEBITDA > 10) { score -= 1; commentary.evebitda = "Caro: EV/EBITDA acima de 10. Alto custo em relação ao fluxo de caixa operacional. (-1)"; }
+        else { commentary.evebitda = "Neutro: EV/EBITDA entre 7 e 10. (0)"; }
+
+        // 5. ROE
+        if (metrics.ROE_pct > 15) { score += 2; commentary.roe = "Excelente: ROE acima de 15%. Indica alta capacidade de gerar lucro a partir do capital próprio. (+2)"; }
+        else if (metrics.ROE_pct < 8) { score -= 1; commentary.roe = "Ruim: ROE abaixo de 8%. Baixa eficiência na geração de riqueza. (-1)"; }
+        else { commentary.roe = "Aceitável: ROE entre 8% e 15%. (0)"; }
+
+        // 6. Margem Líquida
+        if (metrics.MargemLiq * 100 > 10) { score += 1; commentary.margem = "Boa: Margem líquida acima de 10%. Alta capacidade de conversão de receita em lucro. (+1)"; }
+        else if (metrics.MargemLiq * 100 < 5) { score -= 1; commentary.margem = "Fraca: Margem líquida abaixo de 5%. A lucratividade é apertada. (-1)"; }
+        else { commentary.margem = "Neutro: Margem líquida entre 5% e 10%. (0)"; }
+        
+        // 7. Dívida Líquida / EBITDA
+        if (metrics.DLEBITDA < 2.0) { score += 2; commentary.dl_ebitda = "Baixo Risco: Dívida Líquida / EBITDA abaixo de 2. Empresa bem capitalizada e com baixa alavancagem. (+2)"; }
+        else if (metrics.DLEBITDA > 3.5) { score -= 2; commentary.dl_ebitda = "Alto Risco: Dívida Líquida / EBITDA acima de 3.5. Alavancagem elevada, exigindo atenção. (-2)"; }
+        else { score += 0; commentary.dl_ebitda = "Risco Moderado: Dívida Líquida / EBITDA entre 2.0 e 3.5. (0)"; }
+
+        // 8. Liquidez Corrente
+        if (metrics.LiquidezCorrente > 1.5) { score += 1; commentary.liq_corr = "Muito Boa: Liquidez Corrente acima de 1.5. Excelente capacidade de pagar dívidas de curto prazo. (+1)"; }
+        else if (metrics.LiquidezCorrente < 1.0) { score -= 1; commentary.liq_corr = "Alerta: Liquidez Corrente abaixo de 1. Risco de caixa no curto prazo. (-1)"; }
+        else { commentary.liq_corr = "Aceitável: Liquidez Corrente entre 1.0 e 1.5. (0)"; }
+        
+        // 9. Dividend Yield (Recomendação de Renda)
+        if (metrics.DY_pct > 6.0) { score += 1; commentary.dy = "Bom DY: Dividend Yield acima de 6%. Atrai investidores de renda. (+1)"; }
+        else { commentary.dy = "DY Neutro: DY abaixo de 6%. (0)"; }
+
+
+        return { total: score, commentary: commentary };
+    }
+    
+    // Função para exibir as métricas chave
+    function displayKeyMetrics(metrics) {
+        const metricsContainer = document.getElementById('keyMetrics');
+        
+        const metricItems = [
+            { label: "P/L", value: metrics.PL.toFixed(2) },
+            { label: "P/VPA", value: metrics.PVPA.toFixed(2) },
+            { label: "EV/EBITDA", value: metrics.EVEBITDA.toFixed(2) },
+            { label: "ROE", value: metrics.ROE_pct.toFixed(2) + '%' },
+            { label: "Margem Líquida", value: (metrics.MargemLiq * 100).toFixed(2) + '%' },
+            { label: "Cresc. Sustentável (g)", value: metrics.g_pct.toFixed(2) + '%' },
+            { label: "PEG Ratio", value: metrics.PEG.toFixed(2) },
+            { label: "Dívida Líq./EBITDA", value: metrics.DLEBITDA.toFixed(2) + 'x' },
+            { label: "Liquidez Corrente", value: metrics.LiquidezCorrente.toFixed(2) },
+            { label: "Giro do Ativo", value: metrics.GiroAtivo.toFixed(2) },
+            { label: "Dividend Yield", value: metrics.DY_pct.toFixed(2) + '%' },
+        ];
+        
+        metricsContainer.innerHTML = metricItems.map(item => `
+            <div class="bg-gray-900 p-4 rounded-xl shadow-lg border border-indigo-600/50 flex flex-col items-center">
+                <span class="text-xs text-indigo-300 uppercase">${item.label}</span>
+                <strong class="text-xl font-bold text-white mt-1">${item.value}</strong>
+            </div>
+        `).join('');
+    }
+
+    // Função para chamar o Gemini e gerar o relatório final
+    async function generateReport(metrics, score) {
+        const recommendationElement = document.getElementById('finalRecommendation');
+        const textElement = document.getElementById('recommendationText');
+        const totalScore = score.total;
+        
+        const recommendation = totalScore >= 4 ? 'COMPRA FORTE' : (totalScore > 0 ? 'COMPRA' : (totalScore > -4 ? 'NEUTRA' : 'VENDA'));
+        
+        const prompt = `Analise os seguintes indicadores de análise fundamentalista para uma empresa, fornecidos em formato JSON. Gere um relatório conciso e profissional, dividido em 4 parágrafos:
+1. **Valuation:** Comente o PEG Ratio, P/L, P/VPA e EV/EBITDA.
+2. **Saúde e Eficiência:** Comente o ROE, Margem Líquida e Crescimento Sustentável (g).
+3. **Endividamento e Liquidez:** Comente a Dívida Líquida/EBITDA e Liquidez Corrente.
+4. **Recomendação Final:** Dê a recomendação final de ${recommendation} e justifique-a com base na pontuação total.
+
+Pontuação de Referência (Total de Pontos: ${totalScore}):
+* Score >= 4: Compra Forte
+* Score > 0: Compra
+* Score <= 0 e > -4: Neutra (Manter)
+* Score <= -4: Venda
+
+Indicadores e Pontuações:
+${JSON.stringify(metrics, null, 2)}
+Pontuação Detalhada:
+${JSON.stringify(score.commentary, null, 2)}
+`;
+        
+        try {
+            let attempts = 0;
+            const maxAttempts = 5;
+            let response;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: "Você é um Analista Financeiro Sênior e seu objetivo é fornecer um relatório de análise fundamentalista de ações, conciso e objetivo, estritamente baseado nos indicadores fornecidos. Sua resposta deve ser direta e em português." }] }
+                        })
+                    });
+
+                    if (response.ok) {
+                        break;
+                    }
+                } catch (error) {
+                    console.error("Erro na tentativa de fetch:", error);
+                }
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000)); // Exponential backoff
+            }
+
+            if (!response || !response.ok) {
+                throw new Error("Falha na comunicação com a API após várias tentativas.");
+            }
+
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar o texto do relatório.";
+            
+            textElement.textContent = text;
+            
+            // Estilizando a recomendação final
+            recommendationElement.textContent = recommendation;
+            if (recommendation.includes('FORTE') || recommendation.includes('COMPRA')) {
+                recommendationElement.className = 'status-compra bg-green-600 text-white text-4xl font-extrabold mt-6 p-3 rounded-lg shadow-xl';
+            } else if (recommendation.includes('VENDA')) {
+                recommendationElement.className = 'status-venda bg-red-600 text-white text-4xl font-extrabold mt-6 p-3 rounded-lg shadow-xl';
+            } else {
+                recommendationElement.className = 'status-neutra bg-yellow-600 text-gray-900 text-4xl font-extrabold mt-6 p-3 rounded-lg shadow-xl';
+            }
+
+        } catch (error) {
+            console.error("Erro final ao gerar relatório:", error);
+            textElement.textContent = `Falha ao gerar o relatório de IA: ${error.message}. Exiba as métricas chave acima.`;
+            recommendationElement.textContent = "ERRO NA IA";
+            recommendationElement.className = 'status-error bg-gray-500 text-white text-4xl font-extrabold mt-6 p-3 rounded-lg shadow-xl';
+        } finally {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('reportArea').classList.remove('hidden');
+        }
+    }
 </script>
 
-
-
 </body>
-
 </html>
 
