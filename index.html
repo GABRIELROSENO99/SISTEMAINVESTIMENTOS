@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     
     <style>
-        /* Estilos base para Dark Mode (mantendo apenas CSS puro, sem @apply) */
+        /* Estilos base para Dark Mode */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0F172A; /* Slate 900 */
@@ -18,7 +18,7 @@
             padding: 20px;
         }
 
-        /* Alteração Gráfica conforme solicitado: Fundo Escuro (#374151) e Texto Branco (#FFFFFF) */
+        /* Alteração Gráfica: Fundo Escuro (#374151) e Texto Branco (#FFFFFF) para Inputs */
         .input-group input {
             background-color: #374151; /* Gray-700: Fundo escuro */
             color: #FFFFFF; /* White: Texto branco */
@@ -38,7 +38,7 @@
         }
         
         .input-group label {
-            /* @apply font-medium text-gray-200 mb-1 block; */
+            /* Estilos convertidos de @apply para CSS puro */
             font-weight: 500;
             color: #E5E7EB; /* gray-200 */
             margin-bottom: 0.25rem;
@@ -182,8 +182,13 @@
 </div>
 
 <script>
-    const apiKey = ""; // API Key para o Gemini
-    const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
+    // 🔑 CHAVE DE API INSERIDA AQUI
+    const apiKey = "AIzaSyDsfkqZMTY-zuANGHoTHMYhtBBdkTJLgcI"; 
+    
+    // URL base da API
+    const baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
+    // URL COMPLETA com a chave de API anexada para autenticação
+    const apiUrl = baseUrl + "?key=" + apiKey;
 
     document.getElementById('analysisForm').addEventListener('submit', function(e) {
         e.preventDefault();
