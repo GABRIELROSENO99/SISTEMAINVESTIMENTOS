@@ -56,6 +56,11 @@
         <!-- SEÇÃO 1: VALUATION & PREÇO -->
         <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">1. Dados de Preço e Valor</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- NOVO CAMPO: Ticker -->
+            <div class="input-group">
+                <label for="Ticker">Ticker da Ação (Ex: ITSA4)</label>
+                <input type="text" id="Ticker" required value="ITSA4">
+            </div>
             <div class="input-group">
                 <label for="P">Cotação Atual (P) (R$)</label>
                 <!-- Valor atualizado para 11.96 (ITSA4) -->
@@ -130,13 +135,35 @@
                 <input type="number" id="PassCirc" step="0.01" required value="1500">
             </div>
         </div>
-
-        <button type="submit" id="generateButton" class="w-full p-4 bg-indigo-600 text-white font-extrabold text-lg rounded-xl hover:bg-indigo-500 transition-colors shadow-xl">
-            Gerar Relatório de Análise Fundamentalista
-        </button>
+        
+        <!-- BOTOES DE AÇÃO -->
+        <div class="flex flex-col md:flex-row gap-4">
+            <button type="button" id="riskAnalysisButton" class="w-full md:w-1/2 p-4 bg-purple-600 text-white font-extrabold text-lg rounded-xl hover:bg-purple-500 transition-colors shadow-xl">
+                ✨ Análise de Risco & Cenários (IA)
+            </button>
+            <button type="submit" id="generateButton" class="w-full md:w-1/2 p-4 bg-indigo-600 text-white font-extrabold text-lg rounded-xl hover:bg-indigo-500 transition-colors shadow-xl">
+                Gerar Relatório Fundamentalista
+            </button>
+        </div>
     </form>
     
-    <!-- ÁREA DE RESULTADOS -->
+    <!-- ÁREA DE RISCO E CENÁRIOS -->
+    <div id="riskLoading" class="hidden text-center mt-10 p-5 bg-gray-700 rounded-xl">
+        <div class="text-purple-400 text-xl font-semibold animate-pulse">
+            Analisando riscos e cenários futuros... (Usando Google Search para contexto)
+        </div>
+    </div>
+    
+    <div id="riskArea" class="hidden bg-gray-700 p-6 rounded-xl border border-gray-600 mt-10 shadow-inner">
+        <h2 class="text-3xl font-bold text-purple-400 text-center mb-6">Análise de Risco e Cenários Futuros</h2>
+        <div id="riskContent" class="bg-gray-900 p-6 rounded-xl border border-purple-700">
+            <h3 class="text-xl font-semibold text-white mb-4">Risco e Cenários (IA)</h3>
+            <div id="riskText" class="text-gray-300 leading-relaxed whitespace-pre-wrap"></div>
+        </div>
+    </div>
+
+
+    <!-- ÁREA DE RESULTADOS (ANÁLISE FUNDAMENTALISTA) -->
     <div id="loading" class="hidden text-center mt-10 p-5 bg-gray-700 rounded-xl">
         <div class="text-indigo-400 text-xl font-semibold animate-pulse">
             Analisando dados e gerando relatório... (Isso pode levar alguns segundos)
@@ -166,6 +193,9 @@
 
     document.getElementById('analysisForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        // Esconde a área de risco se estiver visível e mostra o loading principal
+        document.getElementById('riskArea').classList.add('hidden');
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('reportArea').classList.add('hidden');
         document.getElementById('keyMetrics').innerHTML = '';
@@ -179,10 +209,22 @@
         displayKeyMetrics(calculatedMetrics);
         
         // Chamar a API do Gemini para gerar o relatório final
-        generateReport(calculatedMetrics, analysisScore);
+        generateReport(calculatedMetrics, analysisScore, data.Ticker);
     });
     
     document.getElementById('parseButton').addEventListener('click', parseGeneralData);
+    document.getElementById('riskAnalysisButton').addEventListener('click', function() {
+        // Esconde a área principal se estiver visível e mostra o loading de risco
+        document.getElementById('reportArea').classList.add('hidden');
+        document.getElementById('riskLoading').classList.remove('hidden');
+        document.getElementById('riskArea').classList.add('hidden');
+        
+        const data = collectData();
+        if (!data) return;
+        
+        // Chamar a nova função de análise de risco e cenários
+        generateRiskAnalysis(data.Ticker);
+    });
 
     // Função para tratar o texto colado e preencher os campos
     function parseGeneralData() {
@@ -275,9 +317,10 @@
         
         if (valuesFound > 0) {
             // Feedback para o usuário sobre o preenchimento
-            alert(`Sucesso! ${valuesFound} campos foram preenchidos.`);
+            // Substituindo alert por um console.log para evitar interrupção no iFrame
+            console.log(`Sucesso! ${valuesFound} campos foram preenchidos.`);
         } else {
-            alert("Nenhum dado relevante encontrado. Por favor, cole o texto padrão do site.");
+            console.warn("Nenhum dado relevante encontrado. Por favor, cole o texto padrão do site.");
         }
     }
 
@@ -285,6 +328,13 @@
     // Função auxiliar para coletar e validar dados
     function collectData() {
         try {
+            // NOVO: Ticker
+            const Ticker = document.getElementById('Ticker').value.trim();
+            if (!Ticker) {
+                console.error("Erro: Por favor, preencha o Ticker da Ação.");
+                return null;
+            }
+            
             // Pega os valores dos inputs
             const P = parseFloat(document.getElementById('P').value);
             const LPA = parseFloat(document.getElementById('LPA').value);
@@ -303,19 +353,18 @@
             const EBIT = parseFloat(document.getElementById('EBIT').value) * 1000000;
             
             if ([P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT].some(isNaN)) {
-                // Em vez de alert(), usaremos console.error
                 console.error("Erro: Por favor, preencha todos os campos com números válidos.");
                 return null;
             }
 
-            return { P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT };
+            return { Ticker, P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT };
         } catch (error) {
             console.error("Erro na coleta de dados:", error);
             return null;
         }
     }
 
-    // Função para calcular todas as métricas derivadas
+    // Função para calcular todas as métricas derivadas (não alterada)
     function calculateMetrics(data) {
         // Valuation
         const PL = data.LPA > 0 ? data.P / data.LPA : 999;
@@ -350,7 +399,7 @@
         };
     }
 
-    // Função para aplicar o sistema de pontuação
+    // Função para aplicar o sistema de pontuação (não alterada)
     function scoreAnalysis(metrics) {
         let score = 0;
         let commentary = {};
@@ -403,7 +452,7 @@
         return { total: score, commentary: commentary };
     }
     
-    // Função para exibir as métricas chave
+    // Função para exibir as métricas chave (não alterada)
     function displayKeyMetrics(metrics) {
         const metricsContainer = document.getElementById('keyMetrics');
         
@@ -429,19 +478,79 @@
         `).join('');
     }
 
-    // Função para chamar o Gemini e gerar o relatório final
-    async function generateReport(metrics, score) {
+    // Função NOVA: Chamar o Gemini para Análise de Risco e Cenários (com Google Search)
+    async function generateRiskAnalysis(ticker) {
+        const riskTextElement = document.getElementById('riskText');
+        
+        const prompt = `Realize uma análise de risco e cenários futuros (otimista, esperado, pessimista) para a ação ${ticker}. O seu relatório deve conter:
+1. **Riscos Principais:** Liste os 3 principais riscos (setor, regulatório ou macroeconômico) que podem afetar o desempenho desta ação.
+2. **Cenário Otimista:** Descreva brevemente o que levaria a ação a ter um desempenho significativamente superior (bull case).
+3. **Cenário Esperado:** Descreva o cenário mais provável para a ação (base case).
+4. **Cenário Pessimista:** Descreva o que levaria a ação a ter um desempenho ruim (bear case).
+Utilize informações atuais do Google Search para embasamento.
+`;
+        
+        try {
+            let attempts = 0;
+            const maxAttempts = 5;
+            let response;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            // ATIVANDO O GOOGLE SEARCH PARA CONTEXTO ATUALIZADO
+                            tools: [{ "google_search": {} }],
+                            systemInstruction: { parts: [{ text: "Você é um analista de mercado e risco, focado em fornecer uma análise qualitativa e cenários de investimento de forma objetiva e em português. Formate a resposta usando Markdown para facilitar a leitura." }] }
+                        })
+                    });
+
+                    if (response.ok) {
+                        break;
+                    }
+                } catch (error) {
+                    console.error("Erro na tentativa de fetch (Risco):", error);
+                }
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000)); // Exponential backoff
+            }
+
+            if (!response || !response.ok) {
+                throw new Error("Falha na comunicação com a API após várias tentativas.");
+            }
+
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar o texto do relatório de risco.";
+            
+            riskTextElement.textContent = text;
+            
+
+        } catch (error) {
+            console.error("Erro final ao gerar relatório de risco:", error);
+            riskTextElement.textContent = `Falha ao gerar o relatório de Risco e Cenários (IA): ${error.message}.`;
+        } finally {
+            document.getElementById('riskLoading').classList.add('hidden');
+            document.getElementById('riskArea').classList.remove('hidden');
+        }
+    }
+
+
+    // Função para chamar o Gemini e gerar o relatório final (atualizada para incluir Ticker no prompt)
+    async function generateReport(metrics, score, ticker) {
         const recommendationElement = document.getElementById('finalRecommendation');
         const textElement = document.getElementById('recommendationText');
         const totalScore = score.total;
         
         const recommendation = totalScore >= 4 ? 'COMPRA FORTE' : (totalScore > 0 ? 'COMPRA' : (totalScore > -4 ? 'NEUTRA' : 'VENDA'));
         
-        const prompt = `Analise os seguintes indicadores de análise fundamentalista para uma empresa, fornecidos em formato JSON. Gere um relatório conciso e profissional, dividido em 4 parágrafos:
+        const prompt = `Analise os seguintes indicadores de análise fundamentalista para a ação ${ticker}, fornecidos em formato JSON. Gere um relatório conciso e profissional, dividido em 4 parágrafos:
 1. **Valuation:** Comente o PEG Ratio, P/L, P/VPA e EV/EBITDA.
 2. **Saúde e Eficiência:** Comente o ROE, Margem Líquida e Crescimento Sustentável (g).
 3. **Endividamento e Liquidez:** Comente a Dívida Líquida/EBITDA e Liquidez Corrente.
-4. **Recomendação Final:** Dê a recomendação final de ${recommendation} e justifique-a com base na pontuação total.
+4. **Recomendação Final:** Dê a recomendação final de ${recommendation} e justifique-a com base na pontuação total e nos indicadores.
 
 Pontuação de Referência (Total de Pontos: ${totalScore}):
 * Score >= 4: Compra Forte
@@ -514,4 +623,3 @@ ${JSON.stringify(score.commentary, null, 2)}
 
 </body>
 </html>
-
