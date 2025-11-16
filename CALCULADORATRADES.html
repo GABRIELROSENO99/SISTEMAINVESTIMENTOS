@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise de Ações - Metodologia PEG</title>
-    <!-- Incluindo Tailwind CSS para facilitar o estilo e responsividade -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <style>
         /* Estilos base para Dark Mode e Profissionalismo */
         body {
@@ -74,7 +77,6 @@
 <div class="container">
     <h1>
         Ferramenta de Análise de Ações (Método PEG Ratio)
-        <!-- Ícone de informação para o PEG Ratio -->
         <span class="info-icon" 
             onmouseover="showTooltip(this, 'O PEG Ratio (Price/Earnings to Growth) é um indicador que ajusta o P/L (Preço/Lucro) pelo crescimento esperado dos lucros. É usado para determinar se uma ação está cara ou barata em relação ao seu potencial de crescimento futuro. PEG < 1 é considerado barato; PEG = 1 é justo; PEG > 1 é caro.')" 
             onmouseout="hideTooltip()">i</span>
@@ -82,19 +84,16 @@
     <form id="analysisForm">
         <p class="text-gray-300 mb-6">Insira os dados da Ação (últimos 12 meses):</p>
 
-        <!-- Cotação Atual (P) -->
         <div class="input-group">
             <label for="currentPrice">Cotação Atual (P) (R$)</label>
             <input type="number" id="currentPrice" step="0.01" required value="8.49">
         </div>
 
-        <!-- Lucro por Ação (LPA) -->
         <div class="input-group">
             <label for="lpa">Lucro por Ação (LPA) (R$)</label>
             <input type="number" id="lpa" step="0.01" required value="1.69">
         </div>
 
-        <!-- Dividend Yield (D.Y.) -->
         <div class="input-group">
             <label for="dy">
                 DIVIDEND YIELD (D.Y.) (%) 
@@ -103,7 +102,6 @@
             <input type="number" id="dy" step="0.01" required value="8.64">
         </div>
 
-        <!-- ROE (Retorno sobre Patrimônio) -->
         <div class="input-group">
             <label for="roe">
                 ROE (Retorno sobre Patrimônio) (%) 
@@ -131,11 +129,9 @@
         
         <hr class="my-4 border-gray-600">
 
-        <!-- Manteve o div de explicação adicionado anteriormente -->
         <div class="result-item flex justify-between py-2 mb-2"><span>**STATUS DA AÇÃO:**</span> <strong id="statusFinal"></strong></div>
         <div id="statusExplanation" class="text-sm italic text-gray-400 p-3 bg-gray-900 rounded-lg">
-            <!-- Esta div será preenchida pelo JavaScript com a explicação -->
-        </div>
+            </div>
         
     </div>
 </div>
@@ -200,7 +196,7 @@
         const Payout = DPS / LPA;
         
         if (Payout > 1.2) { 
-             console.warn("Atenção: Payout alto demais (>120%), o que indica que a empresa pagou mais do que lucrou. Verifique a sustentabilidade do DY.");
+            console.warn("Atenção: Payout alto demais (>120%), o que indica que a empresa pagou mais do que lucrou. Verifique a sustentabilidade do DY.");
         }
 
         // Crescimento Sustentável (g): g = (1 - Payout) * ROE
