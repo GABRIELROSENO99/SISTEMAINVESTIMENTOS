@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise de Ações - Metodologia PEG</title>
+    <!-- Incluindo Tailwind CSS para facilitar o estilo e responsividade -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,10 +24,15 @@
             @apply bg-gray-800 p-10 rounded-2xl shadow-2xl;
         }
         h1 {
-            /* Bright color for dark mode header and border for professional look */
-            /* AUMENTADO DE text-3xl PARA text-4xl */
-            @apply text-4xl font-extrabold text-cyan-400 text-center mb-8 pb-3 border-b-4 border-cyan-500 flex items-center justify-center gap-3;
+            /* ALTERADO PARA text-6xl (Muito maior) para máxima proeminência e destaque */
+            @apply text-6xl font-extrabold text-cyan-400 text-center mb-8 pb-3 border-b-4 border-cyan-500 flex items-center justify-center gap-3;
         }
+        
+        /* Adicionando estilo para o h2 de resultados para ter um tamanho decente, mas manter h1 maior */
+        h2 {
+            @apply text-2xl font-semibold text-cyan-400 text-center mb-4;
+        }
+
         .input-group {
             @apply mb-5 flex items-center gap-4;
         }
@@ -70,6 +76,32 @@
         .status-alerta { color: #FCD34D; font-weight: bold; } /* Amarelo - Amber 300 */
         .status-caro { color: #F87171; font-weight: bold; } /* Vermelho - Red 400 */
         .status-muito-caro { color: #FCA5A5; font-weight: bold; } /* Red mais suave para dark mode */
+        
+        /* Estilo para o botão Gemini */
+        #gemini-btn {
+            @apply w-full p-3 bg-sky-600 text-white font-bold rounded-xl mt-3 hover:bg-sky-500 transition-colors shadow-lg;
+        }
+        
+        /* Estilo para a área de análise do Gemini */
+        #geminiAnalysisResult {
+            @apply mt-6 p-4 bg-gray-900 border-l-4 border-sky-400 rounded-lg text-gray-300;
+            white-space: pre-wrap; /* Para preservar a formatação do LLM */
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #34D399;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -116,7 +148,7 @@
     </form>
 
     <div id="results" class="result-section hidden bg-gray-700 p-6 rounded-xl border border-gray-600 mt-8 shadow-inner">
-        <h2 class="text-xl font-semibold text-cyan-400 text-center mb-4">Resultados da Análise PEG Ratio</h2>
+        <h2 class="text-2xl font-semibold text-cyan-400 text-center mb-4">Resultados da Análise PEG Ratio</h2>
         
         <div class="result-item flex justify-between py-2 border-b border-gray-600"><span>P/L (Preço/Lucro) Atual:</span> <strong id="plResult"></strong></div>
         <div class="result-item flex justify-between py-2 border-b border-gray-600"><span>Crescimento Sustentável Esperado (g):</span> <strong id="gResult"></strong></div>
@@ -131,7 +163,16 @@
 
         <div class="result-item flex justify-between py-2 mb-2"><span>**STATUS DA AÇÃO:**</span> <strong id="statusFinal"></strong></div>
         <div id="statusExplanation" class="text-sm italic text-gray-400 p-3 bg-gray-900 rounded-lg">
-            </div>
+            <!-- Esta div será preenchida pelo JavaScript com a explicação -->
+        </div>
+
+        <!-- NOVO BOTÃO GEMINI -->
+        <button id="gemini-btn" onclick="generateGeminiAnalysis()" disabled class="flex items-center justify-center">
+            Análise Qualitativa com Gemini ✨
+        </button>
+        <div id="geminiAnalysisContainer">
+            <div id="geminiAnalysisResult" class="hidden"></div>
+        </div>
         
     </div>
 </div>
@@ -139,6 +180,13 @@
 <div id="tooltip" class="info-tooltip"></div>
 
 <script>
+    // Variáveis globais para armazenar os resultados da análise
+    let calculatedResults = null;
+
+    // Constantes do Gemini API
+    const apiKey = ""; 
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
     // Função para mostrar a dica (tooltip)
     function showTooltip(element, text) {
         const tooltip = document.getElementById('tooltip');
@@ -162,8 +210,28 @@
         e.preventDefault();
         runAnalysis();
     });
+    
+    // Função para tratar retentativa com backoff exponencial
+    async function fetchWithExponentialBackoff(url, options, maxRetries = 5, delay = 1000) {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                const response = await fetch(url, options);
+                if (response.status === 429 && i < maxRetries - 1) {
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; // Dobra o tempo de espera
+                    continue;
+                }
+                return response;
+            } catch (error) {
+                if (i === maxRetries - 1) throw error;
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2;
+            }
+        }
+        throw new Error('Falha ao buscar após várias tentativas.');
+    }
 
-    // Função principal de análise
+    // Função principal de análise (PEG)
     function runAnalysis() {
         // 1. Coleta de Dados e Conversão para Decimal
         const P = parseFloat(document.getElementById('currentPrice').value);
@@ -174,6 +242,13 @@
         const statusElement = document.getElementById('statusFinal');
         const explanationElement = document.getElementById('statusExplanation');
         const resultsDiv = document.getElementById('results');
+        const geminiBtn = document.getElementById('gemini-btn');
+        const geminiResultDiv = document.getElementById('geminiAnalysisResult');
+        
+        // Limpar resultados anteriores do Gemini
+        geminiResultDiv.textContent = '';
+        geminiResultDiv.classList.add('hidden');
+        geminiBtn.disabled = true;
 
         // Validação de dados de entrada: Must be positive numbers
         if (isNaN(P) || isNaN(LPA) || isNaN(DY_pct) || isNaN(ROE_pct) || P <= 0 || LPA <= 0 || ROE_pct <= 0) {
@@ -234,42 +309,124 @@
         let explanationText = ''; // Variável para armazenar a explicação
 
         if (P < priceJusto * 0.9) { 
-            // 10% abaixo do preço justo (PEG < 0.9)
             statusText = `MUITO BARATA (PEG ${PEG.toFixed(2)}). Excelente Margem de Segurança.`;
             statusClass = 'status-barato';
             explanationText = `O PEG Ratio (${PEG.toFixed(2)}) é substancialmente menor que 1. Isso significa que o P/L Atual (${PL.toFixed(2)}) é muito baixo quando comparado ao Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%). O mercado está precificando a ação com grande desconto em relação ao seu potencial de crescimento.`;
         } else if (P <= priceJusto * 1.1) { 
-            // Entre 0.9x Justo e 1.1x Justo (Próximo de PEG=1)
             statusText = `ACEITÁVEL / PREÇO JUSTO (PEG ${PEG.toFixed(2)}).`;
             statusClass = 'status-alerta';
             explanationText = `O PEG Ratio está próximo de 1. O P/L Atual (${PL.toFixed(2)}) e o Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%) estão alinhados. O preço é considerado justo, pois o mercado está pagando pelo lucro na mesma proporção em que a empresa cresce.`;
         } else if (P < priceCaro) { 
-            // Acima do Justo mas abaixo do Caro (PEG < 3)
             statusText = `CARA / PRÓXIMA DO LIMITE (PEG ${PEG.toFixed(2)}). Cuidado.`;
             statusClass = 'status-caro';
             explanationText = `O PEG Ratio está entre 1 e 3. Isso indica que o P/L Atual (${PL.toFixed(2)}) é alto em relação ao Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%). O mercado está pagando um prêmio, o que sugere que a empresa precisa crescer acima de sua média histórica para justificar este preço.`;
         } else { 
-            // Acima do Preço Caro (PEG >= 3)
             statusText = `MUITO CARA / SOBREVALORIZADA (PEG ${PEG.toFixed(2)}). Risco Alto.`;
             statusClass = 'status-muito-caro';
             explanationText = `O PEG Ratio é maior que 3. O P/L Atual (${PL.toFixed(2)}) é muito superior ao Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%). A ação está muito cara, sinalizando que as expectativas do mercado para o crescimento futuro estão excessivamente otimistas.`;
         }
 
-        // 6. Exibição dos Resultados
-        document.getElementById('plResult').textContent = PL.toFixed(2);
-        document.getElementById('gResult').textContent = g_pct.toFixed(2) + '%';
-        document.getElementById('pegResult').textContent = PEG.toFixed(3);
+        // 6. Armazena resultados para o Gemini e Exibição
+        calculatedResults = {
+            P: P.toFixed(2),
+            LPA: LPA.toFixed(2),
+            DY_pct: DY_pct.toFixed(2),
+            ROE_pct: ROE_pct.toFixed(2),
+            PL: PL.toFixed(2),
+            g_pct: g_pct.toFixed(2),
+            PEG: PEG.toFixed(3),
+            priceJusto: priceJusto.toFixed(2),
+            priceCaro: priceCaro.toFixed(2),
+            statusText: statusText,
+        };
+
+        document.getElementById('plResult').textContent = calculatedResults.PL;
+        document.getElementById('gResult').textContent = calculatedResults.g_pct + '%';
+        document.getElementById('pegResult').textContent = calculatedResults.PEG;
         
-        document.getElementById('priceJusto').textContent = `R$ ${priceJusto.toFixed(2)}`;
-        document.getElementById('priceCaro').textContent = `R$ ${priceCaro.toFixed(2)}`;
+        document.getElementById('priceJusto').textContent = `R$ ${calculatedResults.priceJusto}`;
+        document.getElementById('priceCaro').textContent = `R$ ${calculatedResults.priceCaro}`;
         
         statusElement.textContent = statusText;
         statusElement.className = statusClass;
         
-        // Exibe a explicação
         explanationElement.textContent = explanationText; 
         
         resultsDiv.style.display = 'block';
+        
+        // Ativa o botão Gemini após a análise ser concluída com sucesso
+        geminiBtn.disabled = false;
+    }
+
+
+    // FUNÇÃO DE INTEGRAÇÃO COM GEMINI API
+    async function generateGeminiAnalysis() {
+        if (!calculatedResults) {
+            alert('Por favor, execute a Análise de Ação primeiro.');
+            return;
+        }
+
+        const geminiBtn = document.getElementById('gemini-btn');
+        const geminiResultDiv = document.getElementById('geminiAnalysisResult');
+        
+        // 1. Mostrar estado de carregamento
+        geminiBtn.disabled = true;
+        geminiResultDiv.classList.remove('hidden');
+        geminiResultDiv.innerHTML = '<div class="flex items-center text-sky-400"><div class="loading-spinner"></div> Gerando análise qualitativa...</div>';
+
+        // 2. Preparar Prompt para o LLM
+        const systemPrompt = `Você é um analista financeiro experiente e imparcial. Sua tarefa é fornecer uma análise qualitativa de investimento, riscos e potencial de crescimento para uma ação, com base nos indicadores fornecidos. A resposta deve ser em Português e ter entre 3 e 4 parágrafos curtos. Não use HTML, Markdown Headers ou Bullets. Não crie listas.`;
+        
+        const userQuery = `
+            Com base nos seguintes dados de uma análise PEG Ratio:
+            - Cotação Atual (P): R$ ${calculatedResults.P}
+            - Lucro por Ação (LPA): R$ ${calculatedResults.LPA}
+            - P/L (Preço/Lucro): ${calculatedResults.PL}
+            - Crescimento Sustentável (g): ${calculatedResults.g_pct}%
+            - PEG Ratio: ${calculatedResults.PEG}
+            - Status da Ação: ${calculatedResults.statusText}
+
+            Gere uma análise concisa focada em três pontos: 
+            1. Interpretação do PEG Ratio e P/L.
+            2. Pontos de atenção/Risco com base no Crescimento Sustentável.
+            3. Potencial de investimento e recomendação final (compra, acompanhamento, ou cautela).
+        `;
+
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+        };
+
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        };
+
+        // 3. Chamar a API
+        try {
+            const response = await fetchWithExponentialBackoff(apiUrl, options);
+            const result = await response.json();
+            
+            const candidate = result.candidates?.[0];
+
+            if (candidate && candidate.content?.parts?.[0]?.text) {
+                const text = candidate.content.parts[0].text;
+                // Exibe o texto gerado
+                geminiResultDiv.textContent = text;
+            } else {
+                geminiResultDiv.textContent = 'Erro ao processar a resposta do LLM.';
+                console.error('Resposta inesperada do LLM:', result);
+            }
+        } catch (error) {
+            console.error('Erro na chamada do Gemini API:', error);
+            geminiResultDiv.textContent = 'Falha na comunicação com o servidor de IA. Tente novamente.';
+        } finally {
+            // 4. Restaurar botão e exibir resultado
+            geminiBtn.disabled = false;
+            geminiResultDiv.classList.remove('hidden');
+            geminiBtn.innerHTML = 'Análise Qualitativa com Gemini ✨';
+        }
     }
 </script>
 
