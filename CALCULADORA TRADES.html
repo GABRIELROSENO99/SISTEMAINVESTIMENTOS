@@ -4,108 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise de Ações - Metodologia PEG</title>
+    <!-- Incluindo Tailwind CSS para facilitar o estilo e responsividade -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Estilos base para Dark Mode e Profissionalismo */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f9;
-            color: #333;
-            padding: 20px;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Dark Blue/Gray 900 */
+            color: #E5E7EB; /* Gray 200 */
         }
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            /* Dark mode container */
+            @apply bg-gray-800 p-10 rounded-2xl shadow-2xl;
         }
         h1 {
-            color: #007bff;
-            text-align: center;
-            margin-bottom: 25px;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
+            /* Bright color for dark mode header and border for professional look */
+            @apply text-3xl font-extrabold text-cyan-400 text-center mb-8 pb-3 border-b-4 border-cyan-500;
         }
         .input-group {
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            @apply mb-5 flex items-center gap-4;
         }
         .input-group label {
-            flex: 2;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
+            @apply flex-1 font-medium text-gray-200 flex items-center;
         }
         .input-group input {
-            flex: 3;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 16px;
+            /* Dark input fields for professional contrast - Text is WHITE on dark background (bg-gray-700) */
+            @apply flex-1 p-3 border border-gray-600 bg-gray-700 text-white rounded-xl focus:ring-cyan-500 focus:border-cyan-500 transition duration-150;
         }
         .info-icon {
-            cursor: pointer;
-            color: #007bff;
-            margin-left: 5px;
-            font-weight: bold;
+            @apply cursor-pointer text-cyan-400 font-bold ml-2 transition duration-150 hover:text-cyan-300;
         }
         .info-tooltip {
             display: none;
-            position: absolute;
-            background-color: #333;
+            position: fixed;
+            background-color: #0F172A; /* Slate 900 for deep contrast */
             color: white;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            z-index: 100;
-            max-width: 250px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-        button {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 18px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #218838;
-        }
-        .result-section {
-            margin-top: 30px;
-            padding: 20px;
-            border: 1px solid #eee;
+            padding: 8px 12px;
             border-radius: 8px;
-            background-color: #f9f9f9;
+            font-size: 13px;
+            z-index: 1000;
+            max-width: 300px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            pointer-events: none;
         }
-        .result-section h2 {
-            text-align: center;
-            color: #007bff;
-            margin-top: 0;
-        }
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px dashed #ddd;
-        }
-        .result-item strong {
-            font-weight: 700;
-        }
-        /* Definições de Cores Visuais */
-        .status-barato { color: #28a745; font-weight: bold; } /* Verde */
-        .status-alerta { color: #ffc107; font-weight: bold; } /* Amarelo */
-        .status-caro { color: #dc3545; font-weight: bold; } /* Vermelho */
-        .status-muito-caro { color: #8b0000; font-weight: bold; } /* Vermelho Escuro */
+        /* Definições de Cores Visuais (Ajustadas para dark mode) */
+        .status-barato { color: #34D399; font-weight: bold; } /* Verde - Emerald 400 */
+        .status-alerta { color: #FCD34D; font-weight: bold; } /* Amarelo - Amber 300 */
+        .status-caro { color: #F87171; font-weight: bold; } /* Vermelho - Red 400 */
+        .status-muito-caro { color: #FCA5A5; font-weight: bold; } /* Red mais suave para dark mode */
     </style>
 </head>
 <body>
@@ -113,18 +61,21 @@
 <div class="container">
     <h1>Ferramenta de Análise de Ações (Método PEG Ratio)</h1>
     <form id="analysisForm">
-        <p>Insira os dados da Ação (últimos 12 meses):</p>
+        <p class="text-gray-300 mb-6">Insira os dados da Ação (últimos 12 meses):</p>
 
+        <!-- Cotação Atual (P) -->
         <div class="input-group">
             <label for="currentPrice">Cotação Atual (P) (R$)</label>
             <input type="number" id="currentPrice" step="0.01" required value="8.49">
         </div>
 
+        <!-- Lucro por Ação (LPA) -->
         <div class="input-group">
             <label for="lpa">Lucro por Ação (LPA) (R$)</label>
             <input type="number" id="lpa" step="0.01" required value="1.69">
         </div>
 
+        <!-- Dividend Yield (D.Y.) -->
         <div class="input-group">
             <label for="dy">
                 DIVIDEND YIELD (D.Y.) (%) 
@@ -133,6 +84,7 @@
             <input type="number" id="dy" step="0.01" required value="8.64">
         </div>
 
+        <!-- ROE (Retorno sobre Patrimônio) -->
         <div class="input-group">
             <label for="roe">
                 ROE (Retorno sobre Patrimônio) (%) 
@@ -141,24 +93,30 @@
             <input type="number" id="roe" step="0.01" required value="27.22">
         </div>
 
-        <button type="submit">Analisar Ação</button>
+        <button type="submit" class="w-full p-3 bg-green-600 text-white font-bold rounded-xl mt-5 hover:bg-green-500 transition-colors shadow-lg">
+            Analisar Ação
+        </button>
     </form>
 
-    <div id="results" class="result-section" style="display: none;">
-        <h2>Resultados da Análise PEG Ratio</h2>
+    <div id="results" class="result-section hidden bg-gray-700 p-6 rounded-xl border border-gray-600 mt-8 shadow-inner">
+        <h2 class="text-xl font-semibold text-cyan-400 text-center mb-4">Resultados da Análise PEG Ratio</h2>
         
-        <div class="result-item"><span>P/L (Preço/Lucro) Atual:</span> <strong id="plResult"></strong></div>
-        <div class="result-item"><span>Crescimento Sustentável Esperado (g):</span> <strong id="gResult"></strong></div>
-        <div class="result-item"><span>PEG Ratio (P/L sobre Crescimento):</span> <strong id="pegResult"></strong></div>
+        <div class="result-item flex justify-between py-2 border-b border-gray-600"><span>P/L (Preço/Lucro) Atual:</span> <strong id="plResult"></strong></div>
+        <div class="result-item flex justify-between py-2 border-b border-gray-600"><span>Crescimento Sustentável Esperado (g):</span> <strong id="gResult"></strong></div>
+        <div class="result-item flex justify-between py-2"><span>PEG Ratio (P/L sobre Crescimento):</span> <strong id="pegResult"></strong></div>
         
-        <hr>
+        <hr class="my-4 border-gray-600">
         
-        <div class="result-item"><span>**Preço Aceitável (Justo) [PEG=1]:**</span> <strong id="priceJusto"></strong></div>
-        <div class="result-item"><span>**Preço Caro (Sobrevalorizado) [PEG=3]:**</span> <strong id="priceCaro"></strong></div>
+        <div class="result-item flex justify-between py-2 border-b border-gray-600"><span>**Preço Aceitável (Justo) [PEG=1]:**</span> <strong id="priceJusto"></strong></div>
+        <div class="result-item flex justify-between py-2"><span>**Preço Caro (Sobrevalorizado) [PEG=3]:**</span> <strong id="priceCaro"></strong></div>
         
-        <hr>
+        <hr class="my-4 border-gray-600">
 
-        <div class="result-item"><span>**STATUS DA AÇÃO:**</span> <strong id="statusFinal"></strong></div>
+        <!-- NOVO: Adicionamos margem inferior ao item de status e um div para a explicação -->
+        <div class="result-item flex justify-between py-2 mb-2"><span>**STATUS DA AÇÃO:**</span> <strong id="statusFinal"></strong></div>
+        <div id="statusExplanation" class="text-sm italic text-gray-400 p-3 bg-gray-900 rounded-lg">
+            <!-- Esta div será preenchida pelo JavaScript com a explicação -->
+        </div>
         
     </div>
 </div>
@@ -166,11 +124,31 @@
 <div id="tooltip" class="info-tooltip"></div>
 
 <script>
+    // Função para mostrar a dica (tooltip)
+    function showTooltip(element, text) {
+        const tooltip = document.getElementById('tooltip');
+        tooltip.textContent = text;
+        
+        const rect = element.getBoundingClientRect();
+        
+        // Posicionamento próximo ao ícone 'i' (usando fixed position)
+        tooltip.style.left = (rect.right + 5) + 'px';
+        tooltip.style.top = (rect.top) + 'px';
+        
+        tooltip.style.display = 'block';
+    }
+
+    // Função para esconder a dica
+    function hideTooltip() {
+        document.getElementById('tooltip').style.display = 'none';
+    }
+
     document.getElementById('analysisForm').addEventListener('submit', function(e) {
         e.preventDefault();
         runAnalysis();
     });
 
+    // Função principal de análise
     function runAnalysis() {
         // 1. Coleta de Dados e Conversão para Decimal
         const P = parseFloat(document.getElementById('currentPrice').value);
@@ -178,25 +156,55 @@
         const DY_pct = parseFloat(document.getElementById('dy').value);
         const ROE_pct = parseFloat(document.getElementById('roe').value);
         
+        const statusElement = document.getElementById('statusFinal');
+        const explanationElement = document.getElementById('statusExplanation');
+        const resultsDiv = document.getElementById('results');
+
+        // Validação de dados de entrada: Must be positive numbers
+        if (isNaN(P) || isNaN(LPA) || isNaN(DY_pct) || isNaN(ROE_pct) || P <= 0 || LPA <= 0 || ROE_pct <= 0) {
+            console.error("Erro: Por favor, insira valores válidos e positivos.");
+            statusElement.textContent = 'ERRO: Valores inválidos ou nulos.';
+            statusElement.className = 'status-muito-caro';
+            explanationElement.textContent = 'Verifique se todos os campos estão preenchidos corretamente com números positivos.';
+            resultsDiv.style.display = 'block';
+            return;
+        }
+
         const ROE = ROE_pct / 100;
         const DY = DY_pct / 100;
 
         // 2. Cálculos Iniciais
         const PL = P / LPA;
 
-        // DPS é necessário para calcular o Payout
+        // DPS (Dividendo Por Ação) é necessário para calcular o Payout
         const DPS = P * DY;
         const Payout = DPS / LPA;
         
+        if (Payout > 1.2) { 
+             console.warn("Atenção: Payout alto demais (>120%), o que indica que a empresa pagou mais do que lucrou. Verifique a sustentabilidade do DY.");
+        }
+
         // Crescimento Sustentável (g): g = (1 - Payout) * ROE
         const retentionRate = 1 - Payout;
-        // g em percentual para uso no PEG (conforme metodologia do vídeo)
+        // g em percentual para uso no PEG 
         const g_pct = retentionRate * ROE * 100; 
+        
+        if (g_pct <= 0) {
+            console.warn("Crescimento Sustentável (g) é zero ou negativo.");
+            document.getElementById('pegResult').textContent = 'N/A';
+            document.getElementById('priceJusto').textContent = 'R$ 0.00';
+            document.getElementById('priceCaro').textContent = 'R$ 0.00';
+            statusElement.textContent = 'CRESCIMENTO NEGATIVO/NULO (PEG inválido)';
+            statusElement.className = 'status-muito-caro';
+            explanationElement.textContent = 'O Crescimento Sustentável é nulo ou negativo. O PEG Ratio não é aplicável. A empresa precisa reter mais lucros ou aumentar o ROE para ter um crescimento interno.';
+            resultsDiv.style.display = 'block';
+            return;
+        }
 
         // 3. Cálculo do PEG Ratio
         const PEG = PL / g_pct;
 
-        // 4. Determinação dos Preços Justo e Caro (Metodologia PEG)
+        // 4. Determinação dos Preços Justo e Caro
         // Preço Aceitável (Justo): PEG = 1 => PL_justo = g
         const PL_justo = g_pct;
         const priceJusto = PL_justo * LPA;
@@ -205,22 +213,31 @@
         const PL_caro = 3 * g_pct;
         const priceCaro = PL_caro * LPA;
 
-        // 5. Determinação do Status Visual
+        // 5. Determinação do Status Visual e Cores
         let statusText = '';
         let statusClass = '';
+        let explanationText = ''; // Variável para armazenar a explicação
 
-        if (P < priceJusto * 0.8) { // Abaixo de 80% do Justo
-            statusText = `MUITO BARATA. Forte Margem de Segurança. (P < R$${priceJusto.toFixed(2)})`;
+        if (P < priceJusto * 0.9) { 
+            // 10% abaixo do preço justo (PEG < 0.9)
+            statusText = `MUITO BARATA (PEG ${PEG.toFixed(2)}). Excelente Margem de Segurança.`;
             statusClass = 'status-barato';
-        } else if (P <= priceJusto) { // Entre 80% e o Preço Justo
-            statusText = `BARATA / ACEITÁVEL. (P < R$${priceJusto.toFixed(2)})`;
-            statusClass = 'status-barato';
-        } else if (P > priceJusto && P < priceCaro) { // Entre Justo e Caro
-            statusText = `ALERTA / PRÓXIMA DO CARO. (P > R$${priceJusto.toFixed(2)})`;
+            explanationText = `O PEG Ratio (${PEG.toFixed(2)}) é substancialmente menor que 1. Isso significa que o P/L Atual (${PL.toFixed(2)}) é muito baixo quando comparado ao Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%). O mercado está precificando a ação com grande desconto em relação ao seu potencial de crescimento.`;
+        } else if (P <= priceJusto * 1.1) { 
+            // Entre 0.9x Justo e 1.1x Justo (Próximo de PEG=1)
+            statusText = `ACEITÁVEL / PREÇO JUSTO (PEG ${PEG.toFixed(2)}).`;
             statusClass = 'status-alerta';
-        } else { // Acima do Preço Caro (PEG > 3)
-            statusText = `CARA / SOBREVALORIZADA. (P > R$${priceCaro.toFixed(2)})`;
+            explanationText = `O PEG Ratio está próximo de 1. O P/L Atual (${PL.toFixed(2)}) e o Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%) estão alinhados. O preço é considerado justo, pois o mercado está pagando pelo lucro na mesma proporção em que a empresa cresce.`;
+        } else if (P < priceCaro) { 
+            // Acima do Justo mas abaixo do Caro (PEG < 3)
+            statusText = `CARA / PRÓXIMA DO LIMITE (PEG ${PEG.toFixed(2)}). Cuidado.`;
             statusClass = 'status-caro';
+            explanationText = `O PEG Ratio está entre 1 e 3. Isso indica que o P/L Atual (${PL.toFixed(2)}) é alto em relação ao Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%). O mercado está pagando um prêmio, o que sugere que a empresa precisa crescer acima de sua média histórica para justificar este preço.`;
+        } else { 
+            // Acima do Preço Caro (PEG >= 3)
+            statusText = `MUITO CARA / SOBREVALORIZADA (PEG ${PEG.toFixed(2)}). Risco Alto.`;
+            statusClass = 'status-muito-caro';
+            explanationText = `O PEG Ratio é maior que 3. O P/L Atual (${PL.toFixed(2)}) é muito superior ao Crescimento Sustentável Esperado (${g_pct.toFixed(2)}%). A ação está muito cara, sinalizando que as expectativas do mercado para o crescimento futuro estão excessivamente otimistas.`;
         }
 
         // 6. Exibição dos Resultados
@@ -231,26 +248,13 @@
         document.getElementById('priceJusto').textContent = `R$ ${priceJusto.toFixed(2)}`;
         document.getElementById('priceCaro').textContent = `R$ ${priceCaro.toFixed(2)}`;
         
-        const statusElement = document.getElementById('statusFinal');
         statusElement.textContent = statusText;
         statusElement.className = statusClass;
         
-        document.getElementById('results').style.display = 'block';
-    }
-
-    // Funções para Tooltip (i)
-    function showTooltip(element, text) {
-        const tooltip = document.getElementById('tooltip');
-        tooltip.textContent = text;
+        // NOVO: Exibe a explicação
+        explanationElement.textContent = explanationText; 
         
-        const rect = element.getBoundingClientRect();
-        tooltip.style.left = (rect.left + window.scrollX + 20) + 'px';
-        tooltip.style.top = (rect.top + window.scrollY - 10) + 'px';
-        tooltip.style.display = 'block';
-    }
-
-    function hideTooltip() {
-        document.getElementById('tooltip').style.display = 'none';
+        resultsDiv.style.display = 'block';
     }
 </script>
 
