@@ -136,6 +136,10 @@
                 <label for="EBIT">EBIT (Lucro Antes Juros/Impostos) (Milhões R$)</label>
                 <input type="number" id="EBIT" step="0.01" required value="1200">
             </div>
+            <div class="input-group">
+                <label for="PSR_input">P/S (Price-to-Sales) (Opcional, se o lucro for negativo)</label>
+                <input type="number" id="PSR_input" step="0.01" value="">
+            </div>
         </div>
 
         <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">3. Dados de Dívida e Caixa</h2>
@@ -213,13 +217,15 @@
     const apiUrl = baseUrl + "?key=" + apiKey;
 
     // IDs de todos os campos que devem ser limpos, incluindo a textarea de dados gerais
+    // ADICIONADO 'PSR_input'
     const fieldIds = [
         'generalData', 'Ticker', 'P', 'LPA', 'VPA', 'VM', 'DY_pct', 
         'ROE_pct', 'ML_pct', 'ReceitaLiq', 'AtivosTotais', 'DL', 
-        'EBITDA', 'AtivoCirc', 'PassCirc', 'EBIT'
+        'EBITDA', 'AtivoCirc', 'PassCirc', 'EBIT', 'PSR_input'
     ];
 
     // Esquema JSON para o Gemini extrair os dados de forma estruturada
+    // ADICIONADO 'PSR'
     const extractionSchema = {
         type: "OBJECT",
         properties: {
@@ -237,7 +243,8 @@
             "DL": { "type": "NUMBER", "description": "Dívida Líquida (em MILHÕES de R$)" },
             "EBITDA": { "type": "NUMBER", "description": "EBITDA (em MILHÕES de R$)" },
             "AtivoCirc": { "type": "NUMBER", "description": "Ativo Circulante (em MILHÕES de R$)" },
-            "PassCirc": { "type": "NUMBER", "description": "Passivo Circulante (em MILHÕES de R$)" }
+            "PassCirc": { "type": "NUMBER", "description": "Passivo Circulante (em MILHÕES de R$)" },
+            "PSR_input": { "type": "NUMBER", "description": "Price-to-Sales Ratio (PSR ou P/S). Valor numérico puro." }
         },
         // Remove a exigência de 'required' para que campos ausentes sejam retornados como null
     };
@@ -320,7 +327,7 @@
         parseMessage.innerHTML = '<span class="text-indigo-400">Analisando o texto com Inteligência Artificial. Aguarde.</span>';
         
         // Mensagem para a IA
-        const systemPrompt = `Você é um extrator de dados financeiros brasileiro. Analise o texto fornecido abaixo e extraia os indicadores-chave de análise fundamentalista. TODOS os valores monetários (Valor de Mercado, Receita Líquida, Ativos Totais, EBIT, EBITDA, Dívida Líquida, Ativo Circulante, Passivo Circulante) devem ser convertidos e retornados em MILHÕES DE REAIS (R$). Os percentuais (DY_pct, ROE_pct, ML_pct) devem ser retornados como números inteiros ou decimais (ex: 15.5 para 15,5%). Os indicadores por ação (P, LPA, VPA) devem ser em Reais (R$). Se algum dado for ambíguo ou não encontrado, retorne null para aquele campo.`;
+        const systemPrompt = `Você é um extrator de dados financeiros brasileiro. Analise o texto fornecido abaixo e extraia os indicadores-chave de análise fundamentalista. TODOS os valores monetários (Valor de Mercado, Receita Líquida, Ativos Totais, EBIT, EBITDA, Dívida Líquida, Ativo Circulante, Passivo Circulante) devem ser convertidos e retornados em MILHÕES DE REAIS (R$). Os percentuais (DY_pct, ROE_pct, ML_pct) devem ser retornados como números inteiros ou decimais (ex: 15.5 para 15,5%). Os indicadores por ação (P, LPA, VPA, PSR_input) devem ser em Reais (R$). Se algum dado for ambíguo ou não encontrado, retorne null para aquele campo.`;
         const userQuery = `Extraia os dados financeiros do seguinte texto:\n\n---\n\n${rawText}`;
         
         try {
@@ -406,7 +413,7 @@
     }
 
 
-    // Função auxiliar para coletar e validar dados (SEM ALTERAÇÕES)
+    // Função auxiliar para coletar e validar dados
     function collectData() {
         try {
             // Ticker
@@ -433,25 +440,40 @@
             const PassCirc = parseFloat(document.getElementById('PassCirc').value) * 1000000;
             const EBIT = parseFloat(document.getElementById('EBIT').value) * 1000000;
             
+            // NOVO: Valor de PSR_input
+            const PSR_input = document.getElementById('PSR_input').value ? parseFloat(document.getElementById('PSR_input').value) : null;
+            
             if ([P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT].some(isNaN)) {
-                console.error("Erro: Por favor, preencha todos os campos com números válidos.");
+                // Nota: O PSR_input é opcional, então não o incluímos no `some(isNaN)`.
+                console.error("Erro: Por favor, preencha todos os campos obrigatórios com números válidos.");
                 return null;
             }
 
-            return { Ticker, P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT };
+            return { Ticker, P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT, PSR_input };
         } catch (error) {
             console.error("Erro na coleta de dados:", error);
             return null;
         }
     }
 
-    // Função para calcular todas as métricas derivadas (SEM ALTERAÇÕES)
+    // Função para calcular todas as métricas derivadas
     function calculateMetrics(data) {
         // Valuation
         const PL = data.LPA > 0 ? data.P / data.LPA : 999;
         const PVPA = data.VPA > 0 ? data.P / data.VPA : 999;
         const EVEBITDA = data.EBITDA > 0 ? (data.VM + data.DL) / data.EBITDA : 999;
         
+        // NOVO CÁLCULO: PSR (Price-to-Sales Ratio)
+        let PSR;
+        if (data.PSR_input !== null && !isNaN(data.PSR_input)) {
+            PSR = data.PSR_input;
+        } else if (data.ReceitaLiq > 0) {
+            // Calcula o PSR se a Receita Líquida for informada (VM / ReceitaLíq)
+            PSR = data.VM / data.ReceitaLiq;
+        } else {
+            PSR = 999;
+        }
+
         // Eficiência / Rentabilidade
         const ROE = data.ROE_pct / 100;
         const DPS = data.P * (data.DY_pct / 100);
@@ -476,56 +498,87 @@
         return {
             PL, PVPA, EVEBITDA, DY_pct: data.DY_pct,
             ROE_pct: data.ROE_pct, MargemLiq, GiroAtivo, g_pct,
-            PEG, DLEBITDA, LiquidezCorrente, CoberturaJuros
+            PEG, PSR, DLEBITDA, LiquidezCorrente, CoberturaJuros
         };
     }
 
-    // Função para aplicar o sistema de pontuação (SEM ALTERAÇÕES)
+    // Função para aplicar o sistema de pontuação (Racional do Vídeo Incorporado)
     function scoreAnalysis(metrics) {
         let score = 0;
         let commentary = {};
 
-        // 1. PEG Ratio
-        if (metrics.PEG < 1.0) { score += 3; commentary.peg = "Excelente: PEG abaixo de 1 indica que a ação está muito barata em relação ao seu potencial de crescimento sustentável. (+3)"; }
-        else if (metrics.PEG < 2.0) { score += 1; commentary.peg = "Aceitável: PEG entre 1 e 2. O preço é justo ou levemente esticado, mas o crescimento justifica o P/L. (+1)"; }
-        else { score -= 1; commentary.peg = "Alerta: PEG acima de 2. A ação pode estar cara, pois o crescimento não justifica o P/L atual. (-1)"; }
+        // 1. PEG Ratio (Ênfase do Vídeo)
+        if (metrics.PEG < 1.0) { 
+            score += 3; commentary.peg = "Excelente: PEG abaixo de 1 indica que a ação está **muito barata em relação ao seu potencial de crescimento** sustentável. (+3)"; 
+        }
+        else if (metrics.PEG < 2.0) { 
+            score += 1; commentary.peg = "Aceitável: PEG entre 1 e 2. O preço é justo, pois o crescimento justifica o P/L. (+1)"; 
+        }
+        else if (metrics.PEG < 3.0) {
+            score -= 1; commentary.peg = "Alerta: PEG entre 2 e 3. A ação pode estar **cara/esticada** em relação ao crescimento esperado. (-1)";
+        }
+        else { 
+            score -= 2; commentary.peg = "Risco de Especulação: PEG acima de 3. O preço está muito caro e o crescimento é difícil de justificar. (-2)"; 
+        }
         
-        // 2. P/L
-        if (metrics.PL < 10) { score += 1; commentary.pl = "Bom: P/L abaixo de 10. Sugere um valuation atrativo. (+1)"; }
-        else if (metrics.PL > 20) { score -= 1; commentary.pl = "Caro: P/L acima de 20. O mercado tem altas expectativas de lucro futuro. (-1)"; }
-        else { commentary.pl = "Neutro: P/L na média do mercado. (0)"; }
+        // 2. PL (Preço/Lucro)
+        if (metrics.PL === 999 || metrics.PL < 0) { 
+            commentary.pl = "PL Inaplicável (Prejuízo): PL não é um bom indicador. A análise deve focar no PSR e em indicadores de crescimento. (0)";
+        }
+        else if (metrics.PL < 10) { 
+            score += 1; commentary.pl = "Bom: P/L abaixo de 10. Sugere um valuation atrativo. (+1)"; 
+        }
+        else if (metrics.PL > 20) { 
+            score -= 1; commentary.pl = "Caro: P/L acima de 20. O mercado tem altas expectativas de lucro futuro. (-1)"; 
+        }
+        else { commentary.pl = "Neutro: P/L na média do mercado (10-20). (0)"; }
 
-        // 3. P/VPA
+        // 3. PSR (Price-to-Sales Ratio) - Usado como indicador secundário, mas crítico para empresas sem lucro.
+        if (metrics.PSR !== 999) {
+            if (metrics.PSR < 1.0) {
+                score += 2; commentary.psr = "Excelente: PSR abaixo de 1. A empresa está sendo negociada por menos de 1x sua Receita Líquida, o que é um sinal de subavaliação (especialmente em empresas de crescimento). (+2)";
+            }
+            else if (metrics.PSR > 3.0) {
+                score -= 1; commentary.psr = "Alerta: PSR acima de 3. Alto prêmio sobre a receita. (-1)";
+            }
+            else { 
+                commentary.psr = "Aceitável: PSR entre 1 e 3. (0)"; 
+            }
+        } else {
+            commentary.psr = "PSR Indisponível: Receita Líquida não informada para cálculo. (0)";
+        }
+
+        // 4. P/VPA
         if (metrics.PVPA < 1.0) { score += 1; commentary.pvpa = "Muito Bom: P/VPA abaixo de 1. A ação está sendo negociada abaixo do seu valor patrimonial líquido. (+1)"; }
         else if (metrics.PVPA > 3.0) { score -= 1; commentary.pvpa = "Caro: P/VPA acima de 3. Alto prêmio sobre o valor contábil. (-1)"; }
         else { commentary.pvpa = "Aceitável: P/VPA entre 1 e 3. (0)"; }
 
-        // 4. EV/EBITDA
+        // 5. EV/EBITDA
         if (metrics.EVEBITDA < 7) { score += 1; commentary.evebitda = "Bom: EV/EBITDA abaixo de 7. Valuation atrativo em relação ao lucro operacional. (+1)"; }
         else if (metrics.EVEBITDA > 10) { score -= 1; commentary.evebitda = "Caro: EV/EBITDA acima de 10. Alto custo em relação ao fluxo de caixa operacional. (-1)"; }
         else { commentary.evebitda = "Neutro: EV/EBITDA entre 7 e 10. (0)"; }
 
-        // 5. ROE
+        // 6. ROE
         if (metrics.ROE_pct > 15) { score += 2; commentary.roe = "Excelente: ROE acima de 15%. Indica alta capacidade de gerar lucro a partir do capital próprio. (+2)"; }
         else if (metrics.ROE_pct < 8) { score -= 1; commentary.roe = "Ruim: ROE abaixo de 8%. Baixa eficiência na geração de riqueza. (-1)"; }
         else { commentary.roe = "Aceitável: ROE entre 8% e 15%. (0)"; }
 
-        // 6. Margem Líquida
+        // 7. Margem Líquida
         if (metrics.MargemLiq * 100 > 10) { score += 1; commentary.margem = "Boa: Margem líquida acima de 10%. Alta capacidade de conversão de receita em lucro. (+1)"; }
         else if (metrics.MargemLiq * 100 < 5) { score -= 1; commentary.margem = "Fraca: Margem líquida abaixo de 5%. A lucratividade é apertada. (-1)"; }
         else { commentary.margem = "Neutro: Margem líquida entre 5% e 10%. (0)"; }
         
-        // 7. Dívida Líquida / EBITDA
+        // 8. Dívida Líquida / EBITDA
         if (metrics.DLEBITDA < 2.0) { score += 2; commentary.dl_ebitda = "Baixo Risco: Dívida Líquida / EBITDA abaixo de 2. Empresa bem capitalizada e com baixa alavancagem. (+2)"; }
         else if (metrics.DLEBITDA > 3.5) { score -= 2; commentary.dl_ebitda = "Alto Risco: Dívida Líquida / EBITDA acima de 3.5. Alavancagem elevada, exigindo atenção. (-2)"; }
         else { score += 0; commentary.dl_ebitda = "Risco Moderado: Dívida Líquida / EBITDA entre 2.0 e 3.5. (0)"; }
 
-        // 8. Liquidez Corrente
+        // 9. Liquidez Corrente
         if (metrics.LiquidezCorrente > 1.5) { score += 1; commentary.liq_corr = "Muito Boa: Liquidez Corrente acima de 1.5. Excelente capacidade de pagar dívidas de curto prazo. (+1)"; }
         else if (metrics.LiquidezCorrente < 1.0) { score -= 1; commentary.liq_corr = "Alerta: Liquidez Corrente abaixo de 1. Risco de caixa no curto prazo. (-1)"; }
         else { commentary.liq_corr = "Aceitável: Liquidez Corrente entre 1.0 e 1.5. (0)"; }
         
-        // 9. Dividend Yield (Recomendação de Renda)
+        // 10. Dividend Yield (Recomendação de Renda)
         if (metrics.DY_pct > 6.0) { score += 1; commentary.dy = "Bom DY: Dividend Yield acima de 6%. Atrai investidores de renda. (+1)"; }
         else { commentary.dy = "DY Neutro: DY abaixo de 6%. (0)"; }
 
@@ -533,7 +586,7 @@
         return { total: score, commentary: commentary };
     }
     
-    // Função para exibir as métricas chave (SEM ALTERAÇÕES)
+    // Função para exibir as métricas chave
     function displayKeyMetrics(metrics) {
         const metricsContainer = document.getElementById('keyMetrics');
         
@@ -545,6 +598,8 @@
             { label: "Margem Líquida", value: (metrics.MargemLiq * 100).toFixed(2) + '%' },
             { label: "Cresc. Sustentável (g)", value: metrics.g_pct.toFixed(2) + '%' },
             { label: "PEG Ratio", value: metrics.PEG.toFixed(2) },
+            // NOVO: PSR
+            { label: "PSR (P/S)", value: metrics.PSR === 999 ? 'N/A' : metrics.PSR.toFixed(2) }, 
             { label: "Dívida Líq./EBITDA", value: metrics.DLEBITDA.toFixed(2) + 'x' },
             { label: "Liquidez Corrente", value: metrics.LiquidezCorrente.toFixed(2) },
             { label: "Giro do Ativo", value: metrics.GiroAtivo.toFixed(2) },
@@ -559,7 +614,7 @@
         `).join('');
     }
 
-    // Função para Análise de Risco (SEM ALTERAÇÕES)
+    // Função para Análise de Risco (MANTIDA)
     async function generateRiskAnalysis(ticker) {
         const riskTextElement = document.getElementById('riskText');
         
@@ -582,17 +637,20 @@ Utilize informações atuais do Google Search para embasamento.`;
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
-                            // ATIVANDO O GOOGLE SEARCH PARA CONTEXTO ATUALIZADO
-                            tools: [{ "google_search": {} }],
-                            systemInstruction: { parts: [{ text: "Você é um analista de mercado e risco, focado em fornecer uma análise qualitativa e cenários de investimento de forma objetiva e em português. Formate a resposta usando Markdown para facilitar a leitura." }] }
+                            // Configuração para usar a busca (Google Search)
+                            config: { 
+                                tools: [{ googleSearch: {} }] 
+                            },
+                            // Definição do modelo
+                            model: "gemini-2.5-flash-preview-09-2025"
                         })
                     });
-
+                    
                     if (response.ok) {
                         break;
                     }
                 } catch (error) {
-                    console.error(`Tentativa ${attempts + 1} de risco falhou.`, error);
+                    console.error(`Tentativa ${attempts + 1} falhou.`, error);
                 }
                 attempts++;
                 if (attempts < maxAttempts) {
@@ -601,123 +659,109 @@ Utilize informações atuais do Google Search para embasamento.`;
             }
 
             if (!response || !response.ok) {
-                riskTextElement.textContent = "❌ Não foi possível gerar a análise de risco e cenários. Tente novamente mais tarde.";
-                return;
+                throw new Error("Falha na chamada da API após várias tentativas.");
             }
-
+            
             const result = await response.json();
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Análise indisponível.";
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Não foi possível gerar a análise de risco.";
             
-            riskTextElement.textContent = text;
-            
+            riskTextElement.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+            document.getElementById('riskArea').classList.remove('hidden');
+
         } catch (error) {
-            console.error("Erro geral na geração de análise de risco:", error);
-            riskTextElement.textContent = `❌ Erro inesperado: ${error.message}`;
+            console.error("Erro na Análise de Risco com Gemini:", error);
+            riskTextElement.textContent = `❌ Erro ao realizar a análise de risco: ${error.message}`;
+            document.getElementById('riskArea').classList.remove('hidden');
         } finally {
             document.getElementById('riskLoading').classList.add('hidden');
-            document.getElementById('riskArea').classList.remove('hidden');
         }
     }
-    
-    // Função para gerar o relatório final (SEM ALTERAÇÕES)
-    async function generateReport(metrics, analysisScore, ticker) {
-        const recommendationTextElement = document.getElementById('recommendationText');
-        const finalRecommendationElement = document.getElementById('finalRecommendation');
 
-        // Formatação dos comentários para o prompt
-        const scoreCommentary = Object.keys(analysisScore.commentary)
-            .map(key => analysisScore.commentary[key])
-            .join('\n- ');
 
-        const finalScore = analysisScore.total;
+    // Função para gerar o relatório final (MANTIDA)
+    async function generateReport(metrics, score, ticker) {
+        const recommendationText = document.getElementById('recommendationText');
+        const finalRecommendation = document.getElementById('finalRecommendation');
+        const loading = document.getElementById('loading');
         
-        let finalRec = "";
-        let recColor = "";
-        
-        if (finalScore >= 5) {
-            finalRec = "COMPRA FORTE";
-            recColor = "bg-green-700 text-green-300";
-        } else if (finalScore >= 2) {
-            finalRec = "COMPRA MODERADA";
-            recColor = "bg-lime-700 text-lime-300";
-        } else if (finalScore >= 0) {
-            finalRec = "NEUTRO / MANTER";
-            recColor = "bg-yellow-700 text-yellow-300";
-        } else if (finalScore >= -3) {
-            finalRec = "VENDA MODERADA";
-            recColor = "bg-orange-700 text-orange-300";
+        const metricsString = JSON.stringify(metrics, (key, value) => {
+            // Remove '999' e '999x' do relatório de métricas para não poluir o prompt
+            if (value === 999 || value === '999x') return "N/A";
+            return value;
+        }, 2);
+
+        const scoreString = JSON.stringify(score.commentary, null, 2);
+
+        let finalRecommendationText;
+        let colorClass;
+
+        if (score.total >= 7) {
+            finalRecommendationText = "COMPRA FORTE";
+            colorClass = "bg-green-700 text-green-300";
+        } else if (score.total >= 3) {
+            finalRecommendationText = "COMPRA MODERADA";
+            colorClass = "bg-green-600 text-white";
+        } else if (score.total >= 0) {
+            finalRecommendationText = "NEUTRO / MANTER";
+            colorClass = "bg-yellow-600 text-white";
+        } else if (score.total >= -4) {
+            finalRecommendationText = "VENDA MODERADA";
+            colorClass = "bg-orange-600 text-white";
         } else {
-            finalRec = "VENDA FORTE";
-            recColor = "bg-red-700 text-red-300";
+            finalRecommendationText = "VENDA FORTE";
+            colorClass = "bg-red-700 text-red-300";
         }
-
-
-        const prompt = `Analise a ação ${ticker} com base nos seguintes indicadores fundamentais e na pontuação de ${finalScore} pontos:
-
-Indicadores e Pontuação (Comentários):
-- ${scoreCommentary}
-
-Métricas-Chave:
-- P/L: ${metrics.PL.toFixed(2)}
-- P/VPA: ${metrics.PVPA.toFixed(2)}
-- ROE: ${metrics.ROE_pct.toFixed(2)}%
-- Dívida Líq./EBITDA: ${metrics.DLEBITDA.toFixed(2)}x
-- Crescimento Sustentável (g): ${metrics.g_pct.toFixed(2)}%
-- PEG Ratio: ${metrics.PEG.toFixed(2)}
-
-Gere um relatório fundamentalista que deve conter:
-1. Uma **análise resumida** dos pontos fortes e fracos da empresa (Valuation, Rentabilidade e Endividamento).
-2. Uma **justificativa detalhada** para a recomendação final de ${finalRec}.
-3. O relatório deve ser escrito em tom formal e persuasivo, usando no máximo 250 palavras. Não inclua a recomendação final no corpo do texto, apenas na conclusão.`;
         
-        try {
-            let attempts = 0;
-            const maxAttempts = 5;
-            let response;
-            
-            while (attempts < maxAttempts) {
-                try {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }],
-                            systemInstruction: { parts: [{ text: "Você é um analista de investimento e redige relatórios de alta qualidade, objetivos e com excelente português." }] }
-                        })
-                    });
+        finalRecommendation.textContent = finalRecommendationText;
+        finalRecommendation.className = `text-center text-4xl font-extrabold mt-6 p-3 rounded-lg ${colorClass}`;
 
-                    if (response.ok) {
-                        break;
-                    }
-                } catch (error) {
-                    console.error(`Tentativa ${attempts + 1} de relatório falhou.`, error);
-                }
-                attempts++;
-                if (attempts < maxAttempts) {
-                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
-                }
-            }
-            
-            if (!response || !response.ok) {
-                recommendationTextElement.textContent = "❌ Não foi possível gerar o relatório fundamentalista.";
-                return;
+
+        const prompt = `Você é um analista de investimentos fundamentalista experiente. Com base nas métricas da ação ${ticker}, gere um relatório. O racional de avaliação segue o modelo Peter Lynch (PEG Ratio) e o racional de valuation por Receita (PSR) para empresas de crescimento.
+
+**Métricas Calculadas:**
+${metricsString}
+
+**Pontuação por Indicador:**
+${scoreString}
+
+**Instruções para o Relatório:**
+1.  **Resumo de Valuation:** Avalie a ação (PL, PEG, PSR). Destaque o PEG Ratio e mencione o PSR. Se o PL for 'N/A' (prejuízo), use o PSR como principal indicador de preço.
+2.  **Qualidade (ROE e Margem):** Comente a eficiência da empresa (ROE) e sua Margem Líquida.
+3.  **Saúde Financeira (Dívida e Liquidez):** Comente o risco de endividamento (DL/EBITDA) e liquidez (Corrente).
+4.  **Conclusão e Risco:** Consolide a pontuação total (${score.total}) e o cenário geral. A conclusão deve ser apresentada em forma de parágrafos fluidos e técnicos.
+5.  O relatório deve ser formal, profissional e formatado com títulos em negrito (**).`;
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    // Use um modelo adequado para geração de texto complexa
+                    model: "gemini-2.5-flash-preview-09-2025" 
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro de API: ${response.status}`);
             }
 
             const result = await response.json();
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Relatório indisponível.";
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Não foi possível gerar o relatório com a IA.";
             
-            recommendationTextElement.textContent = text;
-            finalRecommendationElement.textContent = `RECOMENDAÇÃO: ${finalRec}`;
-            finalRecommendationElement.className = `text-center text-4xl font-extrabold mt-6 p-3 rounded-lg ${recColor}`;
-            
-        } catch (error) {
-            console.error("Erro geral na geração de relatório:", error);
-            recommendationTextElement.textContent = `❌ Erro inesperado: ${error.message}`;
-        } finally {
-            document.getElementById('loading').classList.add('hidden');
+            // Formatação: substitui negritos Markdown por <strong> e quebras de linha por <br>
+            recommendationText.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
             document.getElementById('reportArea').classList.remove('hidden');
+
+        } catch (error) {
+            console.error("Erro na geração do relatório:", error);
+            recommendationText.textContent = `❌ Erro ao gerar o relatório com a IA: ${error.message}`;
+            document.getElementById('reportArea').classList.remove('hidden');
+        } finally {
+            loading.classList.add('hidden');
         }
     }
 </script>
+
 </body>
 </html>
