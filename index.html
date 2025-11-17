@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador de Ações Pro com Gemini</title>
+    <title>Analista de Ações Nimbus 3.000</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -58,7 +58,7 @@
 
     <div class="container-card shadow-2xl rounded-2xl p-6 md:p-10 border border-indigo-900">
 
-        <h1 class="text-4xl font-extrabold text-indigo-400 mb-2">Analisador de Ações Pro 📈</h1>
+        <h1 class="text-4xl font-extrabold text-indigo-400 mb-2">Analista de Ações Nimbus 3.000 📈</h1>
         <p class="text-gray-400 mb-6">Insira o ticker do ativo (ex: GOOG, PETR4.SA) e escolha uma análise. Os dados são pesquisados em tempo real.</p>
 
         <!-- Seção de Entrada -->
@@ -113,7 +113,8 @@
     <script>
         // Variáveis Globais do Canvas (MANDATÓRIAS)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const apiKey = ""; // Deixamos vazio para o Canvas injetar a chave.
+        // A chave API é definida como string vazia para ser injetada pelo ambiente
+        const apiKey = ""; 
         const modelName = 'gemini-2.5-flash-preview-09-2025';
 
         // --- Funções de Utilitário e UI ---
@@ -151,22 +152,26 @@
             let systemPrompt = "";
             let userQuery = "";
             let title = "";
-            const cardInstruction = "A análise DEVE começar com uma seção 'INDICADORES CHAVE', formatada como uma lista Markdown com 3 a 4 itens, onde cada item representa uma métrica importante e seu status. Use o formato EXATO: `- **[MÉTRICA]:** [VALOR] | Status: [STATUS/AÇÃO]`. Exemplo: `- **P/L Atual:** 12.5x | Status: Neutro`. Use informações de fontes fidedignas e recentes.";
+            
+            // INSTRUÇÃO REFORÇADA E UNIFICADA
+            const cardInstruction = "A análise DEVE começar imediatamente (sem texto introdutório) com uma lista Markdown de 3 a 4 'INDICADORES CHAVE'. Use o formato EXATO para cada item da lista (começando em uma nova linha): `- **[MÉTRICA]:** [VALOR] | Status: [STATUS_COLOR_KEY]`. As chaves de status **MANDATÓRIAS** para coloração são: 'COMPRA', 'VENDA', ou 'NEUTRO'.";
             
             switch (analysisType) {
                 case 'fundamental':
                     title = "Análise Fundamentalista - " + ticker;
                     systemPrompt = `Você é um analista fundamentalista experiente. ${cardInstruction} Após os cards, forneça uma análise concisa sobre saúde financeira, valuation, e perspectivas futuras do ativo. O resultado deve ser formatado em Markdown com títulos e listas.`;
-                    userQuery = `Forneça a análise fundamentalista mais recente para o ativo: ${ticker}.`;
+                    userQuery = `Forneça a análise fundamentalista mais recente para o ativo: ${ticker}. Os cards devem incluir P/L, VPA e Dívida Líquida/EBITDA.`;
                     break;
                 case 'technical':
                     title = "Análise Técnica Completa - " + ticker;
-                    systemPrompt = `Você é um analista técnico de mercado de ações de elite. ${cardInstruction} Os indicadores chaves DEVEM incluir Suporte, Resistência e Preço Atual. Após os cards, forneça uma análise detalhada sobre indicadores como Médias Móveis (MM), RSI e Volume. Use o formato Markdown.`;
-                    userQuery = `Realize a análise técnica e de preços chaves para a ação/ativo: ${ticker}.`;
+                    // INSTRUÇÃO ESPECÍFICA PARA TÉCNICA (Corrigida)
+                    const technicalMetrics = "Os cards DEVEM incluir as métricas: **Preço Atual**, **Resistência Imediata** e **Suporte Imediato**. Para Resistência/Venda use 'VENDA', para Suporte/Compra use 'COMPRA' e para preços intermediários/consolidação use 'NEUTRO'.";
+                    systemPrompt = `Você é um analista técnico de mercado de ações de elite. ${cardInstruction.replace("3 a 4", "3")} ${technicalMetrics} Após os cards, forneça uma análise detalhada sobre indicadores como Médias Móveis (MM), RSI e Volume. Use o formato Markdown.`;
+                    userQuery = `Realize a análise técnica e de preços chaves (Preço Atual, Suporte, Resistência) para a ação/ativo: ${ticker}.`;
                     break;
                 case 'momentum':
                     title = "Análise de Momentum - " + ticker;
-                    systemPrompt = `Você é um especialista em estratégias de momentum de curto prazo. ${cardInstruction} Os indicadores chaves DEVEM incluir Momentum (Forte/Fraco), Mudança de Preço de Curto Prazo (Ex: 7 dias) e Volume. Após os cards, forneça uma análise focada exclusivamente no momentum da ação/ativo, indicando a tendência e os principais fatores de influência. Use o formato Markdown.`;
+                    systemPrompt = `Você é um especialista em estratégias de momentum de curto prazo. ${cardInstruction} Os indicadores chaves DEVEM incluir Momentum (indicando FORTE/FRACO no valor), Mudança de Preço de Curto Prazo e Volume. Use 'COMPRA', 'VENDA' ou 'NEUTRO' como status. Após os cards, forneça uma análise focada exclusivamente no momentum da ação/ativo, indicando a tendência e os principais fatores de influência. Use o formato Markdown.`;
                     userQuery = `Realize a análise de momentum para a ação/ativo: ${ticker}.`;
                     break;
                 default:
@@ -182,14 +187,23 @@
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(url, options);
+                    
+                    // Verificação de erro HTTP (Adicionado para melhor tratamento de erros)
+                    if (!response.ok) {
+                         // Lança erro específico para status 4xx/5xx
+                         const errorBody = await response.json().catch(() => ({}));
+                         const errorMessage = errorBody.error?.message || `Erro HTTP: ${response.status} ${response.statusText}`;
+                         throw new Error(`Falha na API: ${errorMessage}`);
+                    }
+                    
                     if (response.status !== 429) { 
                         return response;
                     }
                     const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
-                    console.warn(`[API] Limite de taxa atingido. Tentando novamente em ${Math.round(delay / 1000)}s.`);
+                    // console.warn(`[API] Limite de taxa atingido. Tentando novamente em ${Math.round(delay / 1000)}s.`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                 } catch (error) {
-                    console.error("[API] Erro durante o fetch, tentando novamente:", error);
+                    // console.error("[API] Erro durante o fetch, tentando novamente:", error);
                     if (i === maxRetries - 1) throw error;
                     const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
                     await new Promise(resolve => setTimeout(resolve, delay));
@@ -212,12 +226,13 @@
             }
 
             titleElement.innerHTML = `<span class="loading-animation"></span> Gerando ${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)} para ${ticker}...`;
-            resultsDiv.innerHTML = '<p class="text-gray-400 italic">O Gemini está buscando e analisando os dados em tempo real. Isso pode levar alguns segundos...</p>';
+            resultsDiv.innerHTML = '<p class="text-gray-400 italic">Estou fazendo em segundos o trabalho que voce faria em horas, então deixa o papai aqui trabalhar e aguarde mais alguns segundos</p>';
             cardsDiv.innerHTML = '';
             sourcesDiv.innerHTML = '';
 
             try {
                 const config = getAnalysisConfig(analysisType, ticker);
+                // A chave API é lida da variável global (aqui definida como vazia, como esperado pelo ambiente).
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
                 const payload = {
@@ -225,9 +240,6 @@
                     tools: [{ "google_search": {} }],
                     systemInstruction: {
                         parts: [{ text: config.systemPrompt }]
-                    },
-                    config: {
-                        'googleSearch': {}
                     }
                 };
 
@@ -241,6 +253,8 @@
                 const candidate = result.candidates?.[0];
 
                 if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                    // Adicionando console.log para inspecionar a resposta bruta em caso de falha
+                    console.error("Resposta API bruta (candidate missing content):", JSON.stringify(result, null, 2));
                     throw new Error("Resposta inválida da API ou conteúdo vazio.");
                 }
 
@@ -301,43 +315,60 @@
         // Função para identificar e renderizar as métricas chave como cards coloridos
         function renderKeyMetricsAsCards(markdown) {
             // Padrão: - **[MÉTRICA]:** [VALOR] | Status: [STATUS/AÇÃO]
-            const cardPattern = /-\s*\*\*(.*?):\*\*\s*(.*?)\s*\|\s*Status:\s*(.*)/g;
+            // Usamos 'gim' para encontrar o padrão em múltiplas linhas.
+            const cardPattern = /^\s*-\s*\*\*(.*?):\*\*\s*(.*?)\s*\|\s*Status:\s*(.*)/gim; 
             let match;
             const cards = [];
-            let lastIndex = 0;
+            const matchedLines = [];
             const originalText = markdown;
 
+            // Encontra todas as linhas de métricas
             while ((match = cardPattern.exec(markdown)) !== null) {
+                const line = match[0].trim();
                 const metric = match[1].trim();
                 const value = match[2].trim();
                 const status = match[3].trim();
                 cards.push({ metric, value, status });
-                lastIndex = match.index + match[0].length;
+                // Adiciona a linha completa ao array para remoção posterior
+                matchedLines.push(line); 
             }
 
             // Se não encontrou cards, retorna o markdown original
             if (cards.length === 0) return { cardHtml: '', cleanedMarkdown: markdown };
 
-            // O markdown limpo é o texto APÓS o último card encontrado
-            const cleanedMarkdown = originalText.substring(lastIndex).trim();
+            // Remove todas as linhas de cards encontradas do texto original
+            let cleanedMarkdown = originalText;
+            matchedLines.forEach(line => {
+                // Remove a linha casada e qualquer linha vazia/espaço em branco ao redor
+                // Usamos um regex mais seguro para garantir que a remoção funcione em qualquer posição
+                cleanedMarkdown = cleanedMarkdown.replace(new RegExp(line.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), '').trim();
+            });
+
+            // Remove o cabeçalho 'INDICADORES CHAVE' se o modelo o tiver adicionado (apesar da instrução)
+            cleanedMarkdown = cleanedMarkdown.replace(/#+\s*INDICADORES CHAVE\s*/gi, '').trim();
+
             
-            let cardsHtml = '<div class="flex flex-wrap gap-4">';
+            let cardsHtml = '<div class="flex flex-wrap gap-4 mb-6">'; // Adiciona margem inferior para separar do texto
             
             cards.forEach(card => {
-                let colorClass = 'bg-gray-600 border-gray-500'; // Default Neutro/Info
-                let indicatorColor = 'text-gray-300';
+                let colorClass = 'bg-gray-700 border-gray-600'; // Default Neutro/Info/Fallback
+                let indicatorColor = 'text-gray-400';
                 
-                // Definir cores baseadas no status/tom
+                // Definir cores baseadas no status/tom (focado nas palavras-chave COMPRA, VENDA, NEUTRO)
                 const statusLower = card.status.toLowerCase();
-                if (statusLower.includes('compra') || statusLower.includes('alta') || statusLower.includes('forte') || statusLower.includes('positivo') || statusLower.includes('suporte')) {
-                    colorClass = 'bg-emerald-800 border-emerald-600';
+                
+                // COMPRA (Verde)
+                if (statusLower.includes('compra') || statusLower.includes('alta') || statusLower.includes('forte') || statusLower.includes('positivo') || statusLower.includes('bullish')) {
+                    colorClass = 'bg-emerald-800/70 border-emerald-600';
                     indicatorColor = 'text-emerald-400';
-                } else if (statusLower.includes('venda') || statusLower.includes('baixa') || statusLower.includes('fraco') || statusLower.includes('negativo') || statusLower.includes('resistência')) {
-                    colorClass = 'bg-red-800 border-red-600';
+                // VENDA (Vermelho)
+                } else if (statusLower.includes('venda') || statusLower.includes('baixa') || statusLower.includes('fraco') || statusLower.includes('negativo') || statusLower.includes('bearish')) {
+                    colorClass = 'bg-red-800/70 border-red-600';
                     indicatorColor = 'text-red-400';
-                } else if (statusLower.includes('neutro') || statusLower.includes('estável') || statusLower.includes('espera')) {
-                    colorClass = 'bg-yellow-800 border-yellow-600';
-                    indicatorColor = 'text-yellow-400';
+                // NEUTRO (Amarelo/Âmbar)
+                } else if (statusLower.includes('neutro') || statusLower.includes('estável') || statusLower.includes('espera') || statusLower.includes('lateral')) {
+                    colorClass = 'bg-amber-800/70 border-amber-600';
+                    indicatorColor = 'text-amber-400';
                 }
 
                 cardsHtml += `
@@ -373,61 +404,51 @@
             html = html.replace(/^## (.*$)/gim, '<h4 class="text-xl font-bold text-gray-200 mt-4 mb-2">$1</h4>');
             html = html.replace(/^# (.*$)/gim, '<h4 class="text-2xl font-bold text-indigo-400 mt-4 mb-2">$1</h4>');
 
-            // Converter listas desordenadas (-) e (*) para <ul><li>
-            // Primeiro, remove novas linhas duplas que podem estar aninhadas
-            html = html.replace(/\n\n-\s/g, '\n- '); 
-            html = html.replace(/\n\n\*\s/g, '\n* '); 
-
+            // Converte listas desordenadas (-) e (*) para <ul><li>
             // Troca os marcadores de lista por <li>
             html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li>$1</li>');
 
-            // Envolve os blocos de <li> em <ul>
+            // Envolve os blocos de <li> em <ul> (Lógica de correção de lista)
             if (html.includes('<li>')) {
-                // Remove blocos vazios antes de envolver em <ul>
-                html = html.replace(/<\/p>\s*<li>/g, '<li>'); 
-                
-                // Simple state machine to wrap lists
                 let lines = html.split('\n');
                 let inList = false;
                 let finalHtml = [];
 
                 lines.forEach(line => {
-                    if (line.trim().startsWith('<li>')) {
-                        if (!inList) {
-                            finalHtml.push('<ul class="list-disc pl-5 space-y-1 text-gray-300">');
-                            inList = true;
-                        }
-                        finalHtml.push(line);
-                    } else {
-                        if (inList) {
-                            finalHtml.push('</ul>');
-                            inList = false;
-                        }
-                        finalHtml.push(line);
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('<li>') && !inList) {
+                        finalHtml.push('<ul>');
+                        inList = true;
+                    } else if (!trimmedLine.startsWith('<li>') && inList) {
+                        finalHtml.push('</ul>');
+                        inList = false;
                     }
+                    // Adiciona a linha (seja <li> ou texto normal)
+                    finalHtml.push(line);
                 });
-                if (inList) finalHtml.push('</ul>');
+                
+                // Fecha a última tag <ul> se ainda estiver aberta
+                if (inList) {
+                    finalHtml.push('</ul>');
+                }
                 html = finalHtml.join('\n');
             }
 
-
-            // Converte novas linhas duplas (parágrafos)
-            html = html.split('\n\n').map(p => {
-                const trimmed = p.trim();
-                // Não encapsula o que já é um elemento block
-                if (trimmed.startsWith('<h4') || trimmed.startsWith('<ul') || trimmed === '') {
-                    return trimmed;
+            // Converter parágrafos (qualquer coisa que não seja tag ou cabeçalho)
+            html = html.split('\n').map(line => {
+                const trimmedLine = line.trim();
+                // Verifica se a linha não está vazia e não é o início de uma tag de bloco já convertida
+                if (trimmedLine === '' || trimmedLine.match(/<h|<ul|<li|<strong|<em|<a/i)) {
+                    return line;
                 }
-                return `<p class="mb-3 text-gray-300">${trimmed}</p>`;
-            }).join('');
-            
-            // Remove quebras de linha/espaços desnecessários antes/depois de tags block
-            html = html.replace(/\s*<h4/g, '<h4');
-            html = html.replace(/<\/h4>\s*/g, '</h4>');
-            html = html.replace(/\s*<ul/g, '<ul');
-            html = html.replace(/<\/ul>\s*/g, '</ul>');
-            
-            return html.trim();
+                // Adiciona tags de parágrafo ao redor do texto
+                return `<p>${trimmedLine}</p>`;
+            }).join('\n');
+
+            // Limpa linhas em branco que podem ter sobrado
+            html = html.replace(/(\n\s*){2,}/g, '\n\n');
+
+            return html;
         }
     </script>
 </body>
