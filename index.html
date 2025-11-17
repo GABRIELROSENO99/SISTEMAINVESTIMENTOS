@@ -193,7 +193,7 @@
         <h2 class="text-3xl font-bold text-indigo-400 text-center mb-6">Relatório de Recomendações</h2>
         
         <div id="keyMetrics" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        </div>
+            </div>
 
         <div id="geminiReport" class="bg-gray-900 p-6 rounded-xl border border-indigo-700">
             <h3 class="text-xl font-semibold text-white mb-4">Relatório e Recomendação Final (IA)</h3>
@@ -533,16 +533,6 @@
         return { total: score, commentary: commentary };
     }
     
-    // Função para obter cor e ícone com base na pontuação
-    function getScoreColor(score) {
-        if (score >= 2) return { color: 'green-400', icon: '✅', tag: 'Excelente' };
-        if (score === 1) return { color: 'green-300', icon: '👍', tag: 'Bom' };
-        if (score === 0) return { color: 'yellow-400', icon: '🟡', tag: 'Neutro' };
-        if (score === -1) return { color: 'orange-400', icon: '⚠️', tag: 'Alerta' };
-        return { color: 'red-400', icon: '❌', tag: 'Ruim/Caro' };
-    }
-
-
     // Função para exibir as métricas chave (SEM ALTERAÇÕES)
     function displayKeyMetrics(metrics) {
         const metricsContainer = document.getElementById('keyMetrics');
@@ -569,151 +559,6 @@
         `).join('');
     }
 
-    // 💡 NOVA FUNÇÃO: Gera a Tabela de Pontuação Colorida e Chama a IA com o contexto
-    async function generateReport(metrics, analysisScore, ticker) {
-        const recommendationTextElement = document.getElementById('recommendationText');
-        const finalRecommendationElement = document.getElementById('finalRecommendation');
-        
-        // 1. Mapeamento dos Indicadores para a Tabela de Pontuação
-        const scoringIndicators = [
-            { label: 'Valuation (PEG Ratio)', value: metrics.PEG.toFixed(2), scoreKey: 'peg' },
-            { label: 'P/L', value: metrics.PL.toFixed(2), scoreKey: 'pl' },
-            { label: 'P/VPA', value: metrics.PVPA.toFixed(2), scoreKey: 'pvpa' },
-            { label: 'EV/EBITDA', value: metrics.EVEBITDA.toFixed(2), scoreKey: 'evebitda' },
-            { label: 'Rentabilidade (ROE)', value: metrics.ROE_pct.toFixed(2) + '%', scoreKey: 'roe' },
-            { label: 'Margem Líquida', value: (metrics.MargemLiq * 100).toFixed(2) + '%', scoreKey: 'margem' },
-            { label: 'Dívida L./EBITDA', value: metrics.DLEBITDA.toFixed(2) + 'x', scoreKey: 'dl_ebitda' },
-            { label: 'Liquidez Corrente', value: metrics.LiquidezCorrente.toFixed(2), scoreKey: 'liq_corr' },
-            { label: 'Dividend Yield', value: metrics.DY_pct.toFixed(2) + '%', scoreKey: 'dy' },
-        ];
-
-        // 2. Montar a Tabela de Avaliação HTML (com cores)
-        let tableHTML = `
-            <div class="mb-8 p-4 bg-gray-800 rounded-xl shadow-inner">
-                <h3 class="text-2xl font-bold text-indigo-300 mb-4 border-b border-indigo-700 pb-2">🎯 Tabela de Pontuação & Avaliação</h3>
-                <table class="min-w-full divide-y divide-gray-700">
-                    <thead class="bg-gray-700">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Indicador</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Métrica</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Avaliação</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Pontos</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-700">
-                        ${scoringIndicators.map(item => {
-                            // Encontra o valor do score a partir do texto de comentário para exibir na coluna 'Pontos'
-                            const scoreValue = analysisScore.commentary[item.scoreKey].match(/(\+|-|)(\d*)/); 
-                            // O segundo grupo de captura ([2]) é o número do score (ex: 3, 1, -1)
-                            const scoreNum = scoreValue ? (scoreValue[1] === '-' ? -parseInt(scoreValue[2]) : parseInt(scoreValue[2])) : 0; 
-                            const scoreData = getScoreColor(scoreNum);
-                            return `
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-100">${item.label}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${item.value}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-${scoreData.color}">${scoreData.icon} ${scoreData.tag}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-100">${scoreNum > 0 ? `+${scoreNum}` : scoreNum}</td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-                <div class="mt-4 text-right text-xl font-extrabold text-white p-2 rounded-lg bg-indigo-800/50">
-                    Pontuação Total: <span class="text-indigo-400">${analysisScore.total > 0 ? `+${analysisScore.total}` : analysisScore.total}</span>
-                </div>
-            </div>
-        `;
-
-        // 3. Adicionar o Guia de Interpretação antes do relatório da IA
-        let guideHTML = `
-            <div class="mb-8 p-6 bg-gray-800 rounded-xl border border-gray-700">
-                <h3 class="text-2xl font-bold text-yellow-400 mb-4 border-b border-yellow-700 pb-2">📚 Guia de Interpretação: Aprenda a Analisar</h3>
-                <ul class="list-disc list-inside space-y-3 text-gray-300">
-                    <li>**P/L (Preço/Lucro):** Indica o tempo (em anos) para o lucro da empresa pagar o preço atual da ação. Um P/L &lt; 10 é tipicamente considerado barato.</li>
-                    <li>**P/VPA (Preço/V. Patrimonial p/ Ação):** Se &gt; 1, a ação é negociada com prêmio (mais cara) que seu valor contábil. Se &lt; 1, está barata.</li>
-                    <li>**ROE (Retorno sobre Patrimônio):** A capacidade de gerar lucro com o capital próprio. ROE &gt; 15% é um sinal de gestão de excelência.</li>
-                    <li>**Dívida L./EBITDA:** Risco de alavancagem. O ideal é &lt; 2. Valores negativos significam **Caixa Líquido** (mais caixa que dívida).</li>
-                    <li>**PEG Ratio:** O P/L ajustado pelo Crescimento Sustentável (g). **&lt; 1** é o ideal, pois significa que o crescimento justifica o preço.</li>
-                </ul>
-            </div>
-        `;
-        
-        // 4. Juntando a Tabela e o Guia na área de texto, antes do relatório da IA
-        recommendationTextElement.innerHTML = tableHTML + guideHTML;
-
-        // 5. Preparar o Prompt para o Gemini (Estrutura do Relatório)
-        const metricsString = JSON.stringify({ ...metrics, score: analysisScore.total }, null, 2);
-        
-        const prompt = `
-        Baseado nos dados brutos e métricas calculadas da ação ${ticker}, gere um Relatório Fundamentalista de Recomendações.
-
-        **Dados Calculados Chave:**
-        ${metricsString}
-
-        O relatório deve ser organizado e utilizar formatação Markdown clara (headings, bold, listas) para facilitar o entendimento.
-
-        **Estrutura do Relatório:**
-        1. **RESUMO EXECUTIVO:** Recomendações e nota de qualidade geral.
-        2. **ANÁLISE DE QUALIDADE E RISCO:** Focar em ROE, Margem Líquida e Dívida Líquida/EBITDA.
-        3. **ANÁLISE DE VALUATION:** Focar em P/L, P/VPA e, crucialmente, no PEG Ratio para determinar se o preço está justo.
-        4. **RECOMENDAÇÃO FINAL:** Baseada na Pontuação Total (${analysisScore.total}), use uma das seguintes recomendações:
-            - COMPRA FORTE (Score >= 5)
-            - COMPRA MODERADA (Score 1 a 4)
-            - NEUTRA/MANTER (Score 0)
-            - VENDA MODERADA (Score -1 a -4)
-            - VENDA FORTE (Score <= -5)
-            **A recomendação final deve ser a ÚLTIMA PALAVRA do seu texto.**
-        `;
-
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
-            }
-
-            const result = await response.json();
-            const reportText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar relatório.";
-
-            // 6. Processar a Recomendação Final e Exibir
-            const recommendationMatch = reportText.match(/(COMPRA FORTE|COMPRA MODERADA|NEUTRA\/MANTER|VENDA MODERADA|VENDA FORTE)/i);
-            const finalRec = recommendationMatch ? recommendationMatch[0].toUpperCase() : "ANÁLISE INDEFINIDA";
-            const reportWithoutRec = reportText.replace(finalRec, `\n\n---`).trim(); // Remove a última menção da recomendação
-
-            // 7. Atualizar a Área de Texto com o Relatório da IA (mantendo o conteúdo anterior)
-            recommendationTextElement.innerHTML += `<div class="mt-8 p-6 bg-gray-900 rounded-xl border border-indigo-700">${reportWithoutRec}</div>`;
-            
-            // 8. Aplicar estilo de cor à recomendação final
-            let recStyle = '';
-            if (finalRec.includes('FORTE')) {
-                recStyle = 'bg-green-600 text-white';
-            } else if (finalRec.includes('MODERADA')) {
-                recStyle = finalRec.includes('COMPRA') ? 'bg-green-500 text-white' : 'bg-red-500 text-white';
-            } else if (finalRec.includes('VENDA')) {
-                recStyle = 'bg-red-600 text-white';
-            } else {
-                recStyle = 'bg-yellow-600 text-gray-900';
-            }
-
-            finalRecommendationElement.className = `text-center text-4xl font-extrabold mt-6 p-3 rounded-lg ${recStyle} shadow-2xl`;
-            finalRecommendationElement.textContent = `RECOMENDAÇÃO: ${finalRec}`;
-        
-        } catch (error) {
-            console.error("Erro na geração do relatório:", error);
-            recommendationTextElement.textContent = "❌ Erro ao gerar o relatório. Verifique a chave de API ou a conexão.";
-            finalRecommendationElement.textContent = "ERRO";
-        } finally {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('reportArea').classList.remove('hidden');
-        }
-    }
-    
     // Função para Análise de Risco (SEM ALTERAÇÕES)
     async function generateRiskAnalysis(ticker) {
         const riskTextElement = document.getElementById('riskText');
@@ -737,16 +582,17 @@ Utilize informações atuais do Google Search para embasamento.`;
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
-                             // ATIVANDO O GOOGLE SEARCH PARA CONTEXTO ATUALIZADO
-                            tools: [{ googleSearch: {} }]
-                        }),
+                            // ATIVANDO O GOOGLE SEARCH PARA CONTEXTO ATUALIZADO
+                            tools: [{ "google_search": {} }],
+                            systemInstruction: { parts: [{ text: "Você é um analista de mercado e risco, focado em fornecer uma análise qualitativa e cenários de investimento de forma objetiva e em português. Formate a resposta usando Markdown para facilitar a leitura." }] }
+                        })
                     });
-                    
+
                     if (response.ok) {
-                        break; // Sai do loop de retries
+                        break;
                     }
                 } catch (error) {
-                    console.error(`Tentativa ${attempts + 1} falhou.`, error);
+                    console.error(`Tentativa ${attempts + 1} de risco falhou.`, error);
                 }
                 attempts++;
                 if (attempts < maxAttempts) {
@@ -755,20 +601,121 @@ Utilize informações atuais do Google Search para embasamento.`;
             }
 
             if (!response || !response.ok) {
-                throw new Error("Falha na chamada da API após várias tentativas.");
+                riskTextElement.textContent = "❌ Não foi possível gerar a análise de risco e cenários. Tente novamente mais tarde.";
+                return;
             }
 
             const result = await response.json();
-            const riskText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Erro ao gerar análise de risco.";
-
-            riskTextElement.textContent = riskText;
-            document.getElementById('riskArea').classList.remove('hidden');
-
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Análise indisponível.";
+            
+            riskTextElement.textContent = text;
+            
         } catch (error) {
-            console.error("Erro na geração da análise de risco:", error);
-            riskTextElement.textContent = `❌ Erro ao gerar análise de risco: ${error.message}`;
+            console.error("Erro geral na geração de análise de risco:", error);
+            riskTextElement.textContent = `❌ Erro inesperado: ${error.message}`;
         } finally {
             document.getElementById('riskLoading').classList.add('hidden');
+            document.getElementById('riskArea').classList.remove('hidden');
+        }
+    }
+    
+    // Função para gerar o relatório final (SEM ALTERAÇÕES)
+    async function generateReport(metrics, analysisScore, ticker) {
+        const recommendationTextElement = document.getElementById('recommendationText');
+        const finalRecommendationElement = document.getElementById('finalRecommendation');
+
+        // Formatação dos comentários para o prompt
+        const scoreCommentary = Object.keys(analysisScore.commentary)
+            .map(key => analysisScore.commentary[key])
+            .join('\n- ');
+
+        const finalScore = analysisScore.total;
+        
+        let finalRec = "";
+        let recColor = "";
+        
+        if (finalScore >= 5) {
+            finalRec = "COMPRA FORTE";
+            recColor = "bg-green-700 text-green-300";
+        } else if (finalScore >= 2) {
+            finalRec = "COMPRA MODERADA";
+            recColor = "bg-lime-700 text-lime-300";
+        } else if (finalScore >= 0) {
+            finalRec = "NEUTRO / MANTER";
+            recColor = "bg-yellow-700 text-yellow-300";
+        } else if (finalScore >= -3) {
+            finalRec = "VENDA MODERADA";
+            recColor = "bg-orange-700 text-orange-300";
+        } else {
+            finalRec = "VENDA FORTE";
+            recColor = "bg-red-700 text-red-300";
+        }
+
+
+        const prompt = `Analise a ação ${ticker} com base nos seguintes indicadores fundamentais e na pontuação de ${finalScore} pontos:
+
+Indicadores e Pontuação (Comentários):
+- ${scoreCommentary}
+
+Métricas-Chave:
+- P/L: ${metrics.PL.toFixed(2)}
+- P/VPA: ${metrics.PVPA.toFixed(2)}
+- ROE: ${metrics.ROE_pct.toFixed(2)}%
+- Dívida Líq./EBITDA: ${metrics.DLEBITDA.toFixed(2)}x
+- Crescimento Sustentável (g): ${metrics.g_pct.toFixed(2)}%
+- PEG Ratio: ${metrics.PEG.toFixed(2)}
+
+Gere um relatório fundamentalista que deve conter:
+1. Uma **análise resumida** dos pontos fortes e fracos da empresa (Valuation, Rentabilidade e Endividamento).
+2. Uma **justificativa detalhada** para a recomendação final de ${finalRec}.
+3. O relatório deve ser escrito em tom formal e persuasivo, usando no máximo 250 palavras. Não inclua a recomendação final no corpo do texto, apenas na conclusão.`;
+        
+        try {
+            let attempts = 0;
+            const maxAttempts = 5;
+            let response;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: "Você é um analista de investimento e redige relatórios de alta qualidade, objetivos e com excelente português." }] }
+                        })
+                    });
+
+                    if (response.ok) {
+                        break;
+                    }
+                } catch (error) {
+                    console.error(`Tentativa ${attempts + 1} de relatório falhou.`, error);
+                }
+                attempts++;
+                if (attempts < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+                }
+            }
+            
+            if (!response || !response.ok) {
+                recommendationTextElement.textContent = "❌ Não foi possível gerar o relatório fundamentalista.";
+                return;
+            }
+
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Relatório indisponível.";
+            
+            recommendationTextElement.textContent = text;
+            finalRecommendationElement.textContent = `RECOMENDAÇÃO: ${finalRec}`;
+            finalRecommendationElement.className = `text-center text-4xl font-extrabold mt-6 p-3 rounded-lg ${recColor}`;
+            
+        } catch (error) {
+            console.error("Erro geral na geração de relatório:", error);
+            recommendationTextElement.textContent = `❌ Erro inesperado: ${error.message}`;
+        } finally {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('reportArea').classList.remove('hidden');
         }
     }
 </script>
