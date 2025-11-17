@@ -3,721 +3,331 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise Fundamentalista Completa</title>
+    <title>Analista de Ações Nimbus 3.000 Avançado com Gemini</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Estilos base para Dark Mode */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0F172A; /* Slate 900 */
-            color: #E5E7EB; /* Gray 200 */
-            padding: 20px;
+            background-color: #f7f9fb;
         }
-
-        /* Alteração Gráfica: Fundo Escuro (#374151) e Texto Branco (#FFFFFF) para Inputs */
-        .input-group input, .input-group textarea {
-            background-color: #374151; /* Gray-700: Fundo escuro */
-            color: #FFFFFF; /* White: Texto branco */
-            border: 1px solid #4B5563; /* Gray-600: Borda */
-            padding: 0.75rem; /* p-3 */
-            border-radius: 0.75rem; /* rounded-xl */
-            width: 100%; /* w-full */
-            
-            /* Aplicando os estilos de foco do Tailwind que são mais seguros no CSS puro */
-            transition: all 0.2s ease-in-out;
+        .container-card {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
         }
-
-        .input-group input:focus, .input-group textarea:focus {
-            outline: none;
-            border-color: #818cf8; /* indigo-400 */
-            box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.5); /* ring-2 focus:ring-indigo-400 */
+        .input-group, .button-group {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
         }
-        
-        .input-group label {
-            /* Estilos convertidos de @apply para CSS puro */
-            font-weight: 500;
-            color: #E5E7EB; /* gray-200 */
-            margin-bottom: 0.25rem;
-            display: block;
+        #results {
+            white-space: pre-wrap;
+            min-height: 150px;
+            transition: all 0.3s ease;
         }
-
-        /* Estilo para o spinner/loading */
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
+        .loading-animation {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #10b981;
             border-radius: 50%;
-            border-top: 4px solid #818cf8; /* indigo-400 */
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 8px;
+            margin-right: 0.5rem;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Estilos específicos para cards de preço na análise técnica */
+        .price-card {
+            background-color: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
+            text-align: center;
+        }
     </style>
 </head>
-<body>
+<body class="p-4">
 
-<div class="container bg-gray-800 p-8 md:p-12 rounded-3xl shadow-2xl max-w-4xl mx-auto">
-    <h1 class="text-3xl md:text-4xl font-extrabold text-indigo-400 text-center mb-10 pb-4 border-b-4 border-indigo-500">Análise Fundamentalista Completa de Ações</h1>
-    <form id="analysisForm">
-        <p class="text-gray-300 mb-8 text-center text-lg">Insira os dados da empresa (valores em R$ ou percentuais) ou cole o texto de fontes externas para preenchimento automático.</p>
-        
-        <div class="mb-10 p-6 bg-gray-700 rounded-xl">
-            <h2 class="text-xl font-semibold text-white mb-3">INSERIR DADOS GERAIS (Site de Terceiros)</h2>
-            <div class="flex flex-col md:flex-row gap-4 mb-3">
-                <textarea id="generalData" rows="4" placeholder="Cole aqui os dados da empresa (ex: cotação, LPA, VPA, etc.) em texto puro de qualquer fonte. A IA irá extrair o máximo de informações." class="bg-gray-700 text-white border border-gray-600 p-3 rounded-xl w-full focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all"></textarea>
-            </div>
-            <div class="flex gap-4">
-                <button type="button" id="parseButton" class="w-full md:w-1/2 p-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-500 transition-colors shadow-md flex items-center justify-center">
-                    <span id="parseButtonText">🤖 Extrair e Preencher Campos</span>
-                </button>
-                <button type="button" id="clearButton" class="w-full md:w-1/2 p-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-500 transition-colors shadow-md">
-                    LIMPAR TODOS OS CAMPOS
-                </button>
-            </div>
-            <p id="parseMessage" class="text-sm text-gray-400 mt-2">O Gemini irá analisar o texto colado e preencher os campos automaticamente.</p>
-        </div>
-        
-        <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">1. Dados de Preço e Valor</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="input-group">
-                <label for="Ticker">Ticker da Ação (Ex: ITSA4)</label>
-                <input type="text" id="Ticker" required value="ITSA4">
-            </div>
-            <div class="input-group">
-                <label for="P">Cotação Atual (P) (R$)</label>
-                <input type="number" id="P" step="0.01" required value="11.96">
-            </div>
-            <div class="input-group">
-                <label for="LPA">Lucro por Ação (LPA) (R$)</label>
-                <input type="number" id="LPA" step="0.01" required value="1.45">
-            </div>
-            <div class="input-group">
-                <label for="VPA">Valor Patrimonial por Ação (VPA) (R$)</label>
-                <input type="number" id="VPA" step="0.01" required value="8.41">
-            </div>
-            <div class="input-group">
-                <label for="VM">Valor de Mercado (VM) (Milhões R$)</label>
-                <input type="number" id="VM" step="0.01" required value="131530.00">
-            </div>
-            <div class="input-group">
-                <label for="DY_pct">Dividend Yield (D.Y.) (%)</label>
-                <input type="number" id="DY_pct" step="0.01" required value="8.50">
-            </div>
-        </div>
+    <div class="container-card bg-white shadow-xl rounded-2xl p-6 md:p-10 border border-gray-100">
 
-        <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">2. Dados de Lucro e Eficiência</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="input-group">
-                <label for="ROE_pct">ROE (Retorno sobre Patrimônio) (%)</label>
-                <input type="number" id="ROE_pct" step="0.01" required value="17.22">
-            </div>
-            <div class="input-group">
-                <label for="ML_pct">Margem Líquida (ML) (%)</label>
-                <input type="number" id="ML_pct" step="0.01" required value="193.63">
-            </div>
-            <div class="input-group">
-                <label for="ReceitaLiq">Receita Líquida (Milhões R$)</label>
-                <input type="number" id="ReceitaLiq" step="0.01" required value="3000">
-            </div>
-            <div class="input-group">
-                <label for="AtivosTotais">Ativos Totais (Milhões R$)</label>
-                <input type="number" id="AtivosTotais" step="0.01" required value="6000">
-            </div>
-            <div class="input-group">
-                <label for="EBIT">EBIT (Lucro Antes Juros/Impostos) (Milhões R$)</label>
-                <input type="number" id="EBIT" step="0.01" required value="1200">
-            </div>
-        </div>
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-2"> Analista de Ações Nimbus 3.000🚀</h1>
+        <p class="text-gray-500 mb-6">Insira o ticker (símbolo) de uma ação ou ativo (ex: GOOG, PETR4.SA) e escolha o tipo de análise.</p>
 
-        <h2 class="text-2xl font-semibold text-white mb-4 border-b border-gray-600 pb-2">3. Dados de Dívida e Caixa</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            <div class="input-group">
-                <label for="DL">Dívida Líquida (DL) (Milhões R$)</label>
-                <input type="number" id="DL" step="0.01" required value="1000">
-            </div>
-            <div class="input-group">
-                <label for="EBITDA">EBITDA (Milhões R$)</label>
-                <input type="number" id="EBITDA" step="0.01" required value="1500">
-            </div>
-            <div class="input-group">
-                <label for="AtivoCirc">Ativo Circulante (AC) (Milhões R$)</label>
-                <input type="number" id="AtivoCirc" step="0.01" required value="2500">
-            </div>
-            <div class="input-group">
-                <label for="PassCirc">Passivo Circulante (PC) (Milhões R$)</label>
-                <input type="number" id="PassCirc" step="0.01" required value="1500">
-            </div>
-        </div>
-        
-        <div class="flex flex-col md:flex-row gap-4">
-            <button type="button" id="riskAnalysisButton" class="w-full md:w-1/2 p-4 bg-purple-600 text-white font-extrabold text-lg rounded-xl hover:bg-purple-500 transition-colors shadow-xl">
-                ✨ Análise de Risco & Cenários (IA)
-            </button>
-            <button type="submit" id="generateButton" class="w-full md:w-1/2 p-4 bg-indigo-600 text-white font-extrabold text-lg rounded-xl hover:bg-indigo-500 transition-colors shadow-xl">
-                Gerar Relatório Fundamentalista
+        <!-- Seção de Entrada -->
+        <div class="input-group mb-6 flex-col sm:flex-row">
+            <input type="text" id="tickerInput" placeholder="Ex: GOOG ou PETR4.SA"
+                   class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 shadow-sm">
+            <button id="clearButton" onclick="clearResults()"
+                    class="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition duration-150 shadow-md">
+                Limpar
             </button>
         </div>
-    </form>
-    
-    <div id="riskLoading" class="hidden text-center mt-10 p-5 bg-gray-700 rounded-xl">
-        <div class="text-purple-400 text-xl font-semibold animate-pulse">
-            Analizando riscos e cenários futuros... (Usando Google Search para contexto)
-        </div>
-    </div>
-    
-    <div id="riskArea" class="hidden bg-gray-700 p-6 rounded-xl border border-gray-600 mt-10 shadow-inner">
-        <h2 class="text-3xl font-bold text-purple-400 text-center mb-6">Análise de Risco e Cenários Futuros</h2>
-        <div id="riskContent" class="bg-gray-900 p-6 rounded-xl border border-purple-700">
-            <h3 class="text-xl font-semibold text-white mb-4">Risco e Cenários (IA)</h3>
-            <div id="riskText" class="text-gray-300 leading-relaxed whitespace-pre-wrap"></div>
-        </div>
-    </div>
 
+        <!-- Seção de Botões de Análise -->
+        <div class="button-group flex-wrap justify-center sm:justify-start mb-8">
+            <button onclick="analyzeStock('fundamental')"
+                    class="flex items-center justify-center px-4 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[150px] m-1">
+                Análise Fundamentalista
+            </button>
 
-    <div id="loading" class="hidden text-center mt-10 p-5 bg-gray-700 rounded-xl">
-        <div class="text-indigo-400 text-xl font-semibold animate-pulse">
-            Analizando dados e gerando relatório... (Isso pode levar alguns segundos)
+            <button onclick="analyzeStock('technical')"
+                    class="flex items-center justify-center px-4 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-[150px] m-1">
+                Análise Técnica
+            </button>
+
+            <button onclick="analyzeStock('momentum')"
+                    class="flex items-center justify-center px-4 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[150px] m-1">
+                Análise de Momentum
+            </button>
         </div>
-    </div>
 
-    <div id="reportArea" class="hidden bg-gray-700 p-6 rounded-xl border border-gray-600 mt-10 shadow-inner">
-        <h2 class="text-3xl font-bold text-indigo-400 text-center mb-6">Relatório de Recomendações</h2>
-        
-        <div id="keyMetrics" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <!-- Seção de Resultados -->
+        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-inner">
+            <h2 class="text-xl font-bold text-gray-700 mb-4 flex items-center">
+                <span id="analysisTitle" class="truncate">Resultados da Análise</span>
+            </h2>
+            <div id="results" class="text-gray-700 leading-relaxed min-h-[100px]">
+                Aguardando o ticker e o tipo de análise...
             </div>
-
-        <div id="geminiReport" class="bg-gray-900 p-6 rounded-xl border border-indigo-700">
-            <h3 class="text-xl font-semibold text-white mb-4">Relatório e Recomendação Final (IA)</h3>
-            <div id="recommendationText" class="text-gray-300 leading-relaxed whitespace-pre-wrap"></div>
-            <div id="finalRecommendation" class="text-center text-4xl font-extrabold mt-6 p-3 rounded-lg"></div>
+            <div id="sourcesContainer" class="mt-4 text-sm text-gray-500"></div>
         </div>
+
+        <!-- Seção de Mensagens/Erros (Para substituir alert()) -->
+        <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-xl hidden transition-opacity duration-300" role="alert"></div>
+
     </div>
-</div>
 
-<script>
-    // 🔑 CHAVE DE API INSERIDA AQUI
-    const apiKey = "AIzaSyDsfkqZMTY-zuANGHoTHMYhtBBdkTJLgcI"; 
-    
-    // URL base da API
-    const baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent";
-    // URL COMPLETA com a chave de API anexada para autenticação
-    const apiUrl = baseUrl + "?key=" + apiKey;
+    <script>
+        // Variáveis Globais do Canvas (MANDATÓRIAS)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const apiKey = ""; // Deixamos vazio para o Canvas injetar a chave.
+        const modelName = 'gemini-2.5-flash-preview-09-2025';
 
-    // IDs de todos os campos que devem ser limpos, incluindo a textarea de dados gerais
-    const fieldIds = [
-        'generalData', 'Ticker', 'P', 'LPA', 'VPA', 'VM', 'DY_pct', 
-        'ROE_pct', 'ML_pct', 'ReceitaLiq', 'AtivosTotais', 'DL', 
-        'EBITDA', 'AtivoCirc', 'PassCirc', 'EBIT'
-    ];
+        // --- Funções de Utilitário ---
 
-    // Esquema JSON para o Gemini extrair os dados de forma estruturada
-    const extractionSchema = {
-        type: "OBJECT",
-        properties: {
-            "Ticker": { "type": "STRING", "description": "O código de negociação da ação (ex: ITSA4). Se não encontrado, use 'N/A'" },
-            "P": { "type": "NUMBER", "description": "Cotação atual em R$ (valor numérico puro)" },
-            "LPA": { "type": "NUMBER", "description": "Lucro por Ação em R$ (valor numérico puro)" },
-            "VPA": { "type": "NUMBER", "description": "Valor Patrimonial por Ação em R$ (valor numérico puro)" },
-            "VM": { "type": "NUMBER", "description": "Valor de Mercado (em MILHÕES de R$)" },
-            "DY_pct": { "type": "NUMBER", "description": "Dividend Yield em percentual (%)" },
-            "ROE_pct": { "type": "NUMBER", "description": "ROE em percentual (%)" },
-            "ML_pct": { "type": "NUMBER", "description": "Margem Líquida em percentual (%)" },
-            "ReceitaLiq": { "type": "NUMBER", "description": "Receita Líquida (em MILHÕES de R$)" },
-            "AtivosTotais": { "type": "NUMBER", "description": "Ativos Totais (em MILHÕES de R$)" },
-            "EBIT": { "type": "NUMBER", "description": "EBIT (em MILHÕES de R$)" },
-            "DL": { "type": "NUMBER", "description": "Dívida Líquida (em MILHÕES de R$)" },
-            "EBITDA": { "type": "NUMBER", "description": "EBITDA (em MILHÕES de R$)" },
-            "AtivoCirc": { "type": "NUMBER", "description": "Ativo Circulante (em MILHÕES de R$)" },
-            "PassCirc": { "type": "NUMBER", "description": "Passivo Circulante (em MILHÕES de R$)" }
-        },
-        // Remove a exigência de 'required' para que campos ausentes sejam retornados como null
-    };
+        // Função para mostrar mensagens temporárias (substitui alert())
+        function showMessage(message, type = 'info') {
+            const box = document.getElementById('messageBox');
+            box.textContent = message;
+            box.className = 'fixed bottom-4 right-4 p-4 rounded-lg shadow-xl transition-opacity duration-300 opacity-0';
+            
+            let bgColor = 'bg-blue-100 border-blue-400 text-blue-700';
+            if (type === 'error') bgColor = 'bg-red-100 border-red-400 text-red-700';
+            if (type === 'success') bgColor = 'bg-green-100 border-green-400 text-green-700';
+            
+            // Adiciona classes para o estilo e mostra a caixa
+            setTimeout(() => {
+                box.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-xl transition-opacity duration-300 opacity-100 border ${bgColor}`;
+            }, 50);
 
-    document.getElementById('analysisForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Esconde relatórios e mostra o loading principal
-        document.getElementById('riskArea').classList.add('hidden');
-        document.getElementById('loading').classList.remove('hidden');
-        document.getElementById('reportArea').classList.add('hidden');
-        document.getElementById('keyMetrics').innerHTML = '';
-
-        const data = collectData();
-        if (!data) return;
-
-        const calculatedMetrics = calculateMetrics(data);
-        const analysisScore = scoreAnalysis(calculatedMetrics);
-        
-        displayKeyMetrics(calculatedMetrics);
-        
-        // Chamar a API do Gemini para gerar o relatório final
-        generateReport(calculatedMetrics, analysisScore, data.Ticker);
-    });
-    
-    // Novo listener para chamar a extração com IA
-    document.getElementById('parseButton').addEventListener('click', extractDataWithGemini);
-    document.getElementById('riskAnalysisButton').addEventListener('click', function() {
-        // Esconde a área principal se estiver visível e mostra o loading de risco
-        document.getElementById('reportArea').classList.add('hidden');
-        document.getElementById('riskLoading').classList.remove('hidden');
-        document.getElementById('riskArea').classList.add('hidden');
-        
-        const data = collectData();
-        if (!data) return;
-        
-        // Chamar a nova função de análise de risco e cenários
-        generateRiskAnalysis(data.Ticker);
-    });
-
-    // Função para limpar todos os campos
-    document.getElementById('clearButton').addEventListener('click', clearFields);
-    
-    function clearFields() {
-        fieldIds.forEach(id => {
-            const field = document.getElementById(id);
-            if (field) {
-                // Limpa o valor, exceto o Ticker que mantém o padrão
-                field.value = (id === 'Ticker') ? 'ITSA4' : (id === 'generalData' ? '' : '');
-            }
-        });
-        
-        // Opcional: Limpar as áreas de resultado
-        document.getElementById('riskArea').classList.add('hidden');
-        document.getElementById('riskLoading').classList.add('hidden'); // Limpa o loading de risco também
-        document.getElementById('reportArea').classList.add('hidden');
-        document.getElementById('keyMetrics').innerHTML = '';
-        document.getElementById('recommendationText').textContent = '';
-        document.getElementById('finalRecommendation').textContent = '';
-        document.getElementById('finalRecommendation').className = 'text-center text-4xl font-extrabold mt-6 p-3 rounded-lg'; // Limpa o estilo de cor
-        
-        console.log("Todos os campos e resultados foram limpos.");
-    }
-    
-    // 💡 NOVA FUNÇÃO DE EXTRAÇÃO DE DADOS USANDO GEMINI
-    async function extractDataWithGemini() {
-        const rawText = document.getElementById('generalData').value;
-        const parseButton = document.getElementById('parseButton');
-        const parseButtonText = document.getElementById('parseButtonText');
-        const parseMessage = document.getElementById('parseMessage');
-
-        if (!rawText) {
-            parseMessage.innerHTML = '<span class="text-red-400">🚨 Por favor, cole o texto com os dados da empresa na caixa acima.</span>';
-            return;
+            // Esconde após 5 segundos
+            setTimeout(() => {
+                box.className = box.className.replace('opacity-100', 'opacity-0');
+                setTimeout(() => { box.classList.add('hidden'); }, 300); // Esconde totalmente após a transição
+            }, 5000);
         }
 
-        // 1. Mostrar loading
-        parseButton.disabled = true;
-        parseButtonText.innerHTML = '<span class="spinner"></span> Extraindo...';
-        parseMessage.innerHTML = '<span class="text-indigo-400">Analisando o texto com Inteligência Artificial. Aguarde.</span>';
-        
-        // Mensagem para a IA
-        const systemPrompt = `Você é um extrator de dados financeiros brasileiro. Analise o texto fornecido abaixo e extraia os indicadores-chave de análise fundamentalista. TODOS os valores monetários (Valor de Mercado, Receita Líquida, Ativos Totais, EBIT, EBITDA, Dívida Líquida, Ativo Circulante, Passivo Circulante) devem ser convertidos e retornados em MILHÕES DE REAIS (R$). Os percentuais (DY_pct, ROE_pct, ML_pct) devem ser retornados como números inteiros ou decimais (ex: 15.5 para 15,5%). Os indicadores por ação (P, LPA, VPA) devem ser em Reais (R$). Se algum dado for ambíguo ou não encontrado, retorne null para aquele campo.`;
-        const userQuery = `Extraia os dados financeiros do seguinte texto:\n\n---\n\n${rawText}`;
-        
-        try {
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: extractionSchema
-                },
-                systemInstruction: { parts: [{ text: systemPrompt }] }
-            };
+        // Função para limpar os resultados
+        function clearResults() {
+            document.getElementById('tickerInput').value = '';
+            document.getElementById('results').innerHTML = 'Aguardando o ticker e o tipo de análise...';
+            document.getElementById('analysisTitle').textContent = 'Resultados da Análise';
+            document.getElementById('sourcesContainer').innerHTML = '';
+        }
 
-            let attempts = 0;
-            const maxAttempts = 5;
-            let response;
-            
-            while (attempts < maxAttempts) {
+        // --- Lógica Principal da Análise com Gemini API ---
+
+        // Configuração de prompts e instruções específicas para cada análise
+        function getAnalysisConfig(analysisType, ticker) {
+            let systemPrompt = "";
+            let userQuery = "";
+            let title = "";
+
+            switch (analysisType) {
+                case 'fundamental':
+                    title = "Análise Fundamentalista - " + ticker;
+                    systemPrompt = "Você é um analista fundamentalista de ações. Use o Google Search para encontrar dados financeiros e indicadores chave. Forneça uma análise concisa, mas completa, sobre a saúde financeira, valuation, e perspectivas futuras do ativo. O resultado deve ser formatado em Markdown com títulos e listas, mas sem bullet points externos.";
+                    userQuery = `Forneça a análise fundamentalista mais recente para a ação/ativo: ${ticker}. Use apenas informações de fontes fidedignas e recentes.`;
+                    break;
+                case 'technical':
+                    title = "Análise Técnica Completa - " + ticker;
+                    // Instrução para atender ao requisito de "cards com preços importantes"
+                    systemPrompt = "Você é um analista técnico de mercado de ações de elite. Use o Google Search para encontrar dados de preço e indicadores recentes. Forneça uma análise técnica COMPLETA e bem estruturada para o ativo solicitado. Comece o seu resumo listando 3-4 'PREÇOS CHAVE' (como Suporte, Resistência, e Preço Atual) formatados em negrito, simulando cards. Em seguida, forneça uma análise detalhada sobre indicadores como Médias Móveis (MM), RSI e Volume. Use o formato Markdown.";
+                    userQuery = `Realize a análise técnica e de preços chaves para a ação/ativo: ${ticker}.`;
+                    break;
+                case 'momentum':
+                    title = "Análise de Momentum - " + ticker;
+                    // Instrução focada no momentum
+                    systemPrompt = "Você é um especialista em estratégias de momentum. Use o Google Search para encontrar tendências de preço de curto prazo. Forneça uma análise focada exclusivamente no momentum da ação/ativo, indicando se o momento é forte (alta), fraco (baixa) ou neutro. Indique os principais fatores que influenciam o momentum (como volume recente, mudanças de preço de curto prazo). Use uma linguagem decisiva (Exemplo: Forte Alta). Use o formato Markdown.";
+                    userQuery = `Realize a análise de momentum para a ação/ativo: ${ticker}.`;
+                    break;
+                default:
+                    throw new Error("Tipo de análise desconhecido.");
+            }
+
+            return { systemPrompt, userQuery, title };
+        }
+
+        // Função para fazer o fetch com backoff (para lidar com limites de taxa)
+        async function fetchWithBackoff(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
                 try {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    if (response.ok) {
-                        break; // Sai do loop de retries
+                    const response = await fetch(url, options);
+                    if (response.status !== 429) { // 429 Too Many Requests
+                        return response;
                     }
+                    // Se for 429, espera e tenta novamente
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    console.warn(`[API] Limite de taxa atingido. Tentando novamente em ${Math.round(delay / 1000)}s.`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 } catch (error) {
-                    console.error(`Tentativa ${attempts + 1} falhou.`, error);
-                }
-                attempts++;
-                if (attempts < maxAttempts) {
-                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
-                }
-            }
-
-            if (!response || !response.ok) {
-                throw new Error("Falha na chamada da API após várias tentativas.");
-            }
-
-            const result = await response.json();
-            const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            if (!jsonText) {
-                throw new Error("A resposta da IA está vazia ou malformada.");
-            }
-            
-            const extractedData = JSON.parse(jsonText);
-            let valuesFound = 0;
-
-            // 2. Preencher os campos do formulário com os dados extraídos
-            for (const [key, value] of Object.entries(extractedData)) {
-                const input = document.getElementById(key);
-                if (input && value !== null && value !== undefined) {
-                    
-                    // Ticker é string, os demais são números
-                    if (key === 'Ticker') {
-                        input.value = String(value).toUpperCase();
-                        valuesFound++;
-                    } else if (!isNaN(parseFloat(value))) {
-                        // Todos os outros são números e precisam de 2 casas decimais
-                        input.value = parseFloat(value).toFixed(2);
-                        valuesFound++;
-                    }
+                    console.error("[API] Erro durante o fetch, tentando novamente:", error);
+                    if (i === maxRetries - 1) throw error; // Re-lança se for a última tentativa
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
-            
-            // 3. Mostrar resultado
-            if (valuesFound > 0) {
-                parseMessage.innerHTML = `<span class="text-green-400">✅ Sucesso! ${valuesFound} campos foram preenchidos com os dados extraídos pelo Gemini.</span>`;
-            } else {
-                parseMessage.innerHTML = `<span class="text-yellow-400">⚠️ A extração foi concluída, mas nenhum dado relevante foi encontrado no texto colado.</span>`;
-            }
-
-        } catch (error) {
-            console.error("Erro na extração de dados com Gemini:", error);
-            parseMessage.innerHTML = `<span class="text-red-400">❌ Erro ao extrair dados. Tente formatar o texto ou preencher manualmente. (${error.message})</span>`;
-        } finally {
-            // 4. Resetar botão e loading
-            parseButton.disabled = false;
-            parseButtonText.textContent = '🤖 Extrair e Preencher Campos';
+            throw new Error("Falha na chamada da API após várias tentativas de backoff.");
         }
-    }
 
 
-    // Função auxiliar para coletar e validar dados (SEM ALTERAÇÕES)
-    function collectData() {
-        try {
-            // Ticker
-            const Ticker = document.getElementById('Ticker').value.trim();
-            if (!Ticker) {
-                console.error("Erro: Por favor, preencha o Ticker da Ação.");
-                return null;
-            }
-            
-            // Pega os valores dos inputs. Os inputs de Milhões R$ são multiplicados por 1.000.000 para uso nos cálculos.
-            // Os valores são lidos como Milhões R$ (ex: 1000) e convertidos internamente para o cálculo (1000 * 1000000)
-            const P = parseFloat(document.getElementById('P').value);
-            const LPA = parseFloat(document.getElementById('LPA').value);
-            const VPA = parseFloat(document.getElementById('VPA').value);
-            const VM = parseFloat(document.getElementById('VM').value) * 1000000; 
-            const DY_pct = parseFloat(document.getElementById('DY_pct').value);
-            const ROE_pct = parseFloat(document.getElementById('ROE_pct').value);
-            const ML_pct = parseFloat(document.getElementById('ML_pct').value);
-            const ReceitaLiq = parseFloat(document.getElementById('ReceitaLiq').value) * 1000000;
-            const AtivosTotais = parseFloat(document.getElementById('AtivosTotais').value) * 1000000;
-            const DL = parseFloat(document.getElementById('DL').value) * 1000000;
-            const EBITDA = parseFloat(document.getElementById('EBITDA').value) * 1000000;
-            const AtivoCirc = parseFloat(document.getElementById('AtivoCirc').value) * 1000000;
-            const PassCirc = parseFloat(document.getElementById('PassCirc').value) * 1000000;
-            const EBIT = parseFloat(document.getElementById('EBIT').value) * 1000000;
-            
-            if ([P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT].some(isNaN)) {
-                console.error("Erro: Por favor, preencha todos os campos com números válidos.");
-                return null;
-            }
+        // Função principal que chama o Gemini API
+        async function analyzeStock(analysisType) {
+            const tickerInput = document.getElementById('tickerInput');
+            const ticker = tickerInput.value.trim().toUpperCase();
+            const resultsDiv = document.getElementById('results');
+            const sourcesDiv = document.getElementById('sourcesContainer');
+            const titleElement = document.getElementById('analysisTitle');
 
-            return { Ticker, P, LPA, VPA, VM, DY_pct, ROE_pct, ML_pct, ReceitaLiq, AtivosTotais, DL, EBITDA, AtivoCirc, PassCirc, EBIT };
-        } catch (error) {
-            console.error("Erro na coleta de dados:", error);
-            return null;
-        }
-    }
-
-    // Função para calcular todas as métricas derivadas (SEM ALTERAÇÕES)
-    function calculateMetrics(data) {
-        // Valuation
-        const PL = data.LPA > 0 ? data.P / data.LPA : 999;
-        const PVPA = data.VPA > 0 ? data.P / data.VPA : 999;
-        const EVEBITDA = data.EBITDA > 0 ? (data.VM + data.DL) / data.EBITDA : 999;
-        
-        // Eficiência / Rentabilidade
-        const ROE = data.ROE_pct / 100;
-        const DPS = data.P * (data.DY_pct / 100);
-        const Payout = data.LPA > 0 ? DPS / data.LPA : 0;
-        const retentionRate = 1 - Payout;
-        // Crescimento Sustentável (g) de Gordon: g = ROE * (1 - Payout)
-        const g_pct = retentionRate * ROE * 100; 
-        const MargemLiq = data.ML_pct / 100;
-        const GiroAtivo = data.AtivosTotais > 0 ? data.ReceitaLiq / data.AtivosTotais : 0;
-
-        // PEG Ratio
-        // g_pct precisa ser um número positivo (maior que 1 para ser % ou maior que 0.01 para ser decimal)
-        const PEG = g_pct > 0.1 ? PL / g_pct : 999; 
-
-        // Endividamento / Liquidez
-        const DLEBITDA = data.EBITDA > 0 ? data.DL / data.EBITDA : 999;
-        const LiquidezCorrente = data.PassCirc > 0 ? data.AtivoCirc / data.PassCirc : 999;
-        // Juros estimado em 5% da DL (para ter uma base, ideal seria input de Juros)
-        const jurosEstimado = data.DL * 0.05; 
-        const CoberturaJuros = jurosEstimado > 0 ? data.EBIT / jurosEstimado : 999;
-
-        return {
-            PL, PVPA, EVEBITDA, DY_pct: data.DY_pct,
-            ROE_pct: data.ROE_pct, MargemLiq, GiroAtivo, g_pct,
-            PEG, DLEBITDA, LiquidezCorrente, CoberturaJuros
-        };
-    }
-
-    // Função para aplicar o sistema de pontuação (SEM ALTERAÇÕES)
-    function scoreAnalysis(metrics) {
-        let score = 0;
-        let commentary = {};
-
-        // 1. PEG Ratio
-        if (metrics.PEG < 1.0) { score += 3; commentary.peg = "Excelente: PEG abaixo de 1 indica que a ação está muito barata em relação ao seu potencial de crescimento sustentável. (+3)"; }
-        else if (metrics.PEG < 2.0) { score += 1; commentary.peg = "Aceitável: PEG entre 1 e 2. O preço é justo ou levemente esticado, mas o crescimento justifica o P/L. (+1)"; }
-        else { score -= 1; commentary.peg = "Alerta: PEG acima de 2. A ação pode estar cara, pois o crescimento não justifica o P/L atual. (-1)"; }
-        
-        // 2. P/L
-        if (metrics.PL < 10) { score += 1; commentary.pl = "Bom: P/L abaixo de 10. Sugere um valuation atrativo. (+1)"; }
-        else if (metrics.PL > 20) { score -= 1; commentary.pl = "Caro: P/L acima de 20. O mercado tem altas expectativas de lucro futuro. (-1)"; }
-        else { commentary.pl = "Neutro: P/L na média do mercado. (0)"; }
-
-        // 3. P/VPA
-        if (metrics.PVPA < 1.0) { score += 1; commentary.pvpa = "Muito Bom: P/VPA abaixo de 1. A ação está sendo negociada abaixo do seu valor patrimonial líquido. (+1)"; }
-        else if (metrics.PVPA > 3.0) { score -= 1; commentary.pvpa = "Caro: P/VPA acima de 3. Alto prêmio sobre o valor contábil. (-1)"; }
-        else { commentary.pvpa = "Aceitável: P/VPA entre 1 e 3. (0)"; }
-
-        // 4. EV/EBITDA
-        if (metrics.EVEBITDA < 7) { score += 1; commentary.evebitda = "Bom: EV/EBITDA abaixo de 7. Valuation atrativo em relação ao lucro operacional. (+1)"; }
-        else if (metrics.EVEBITDA > 10) { score -= 1; commentary.evebitda = "Caro: EV/EBITDA acima de 10. Alto custo em relação ao fluxo de caixa operacional. (-1)"; }
-        else { commentary.evebitda = "Neutro: EV/EBITDA entre 7 e 10. (0)"; }
-
-        // 5. ROE
-        if (metrics.ROE_pct > 15) { score += 2; commentary.roe = "Excelente: ROE acima de 15%. Indica alta capacidade de gerar lucro a partir do capital próprio. (+2)"; }
-        else if (metrics.ROE_pct < 8) { score -= 1; commentary.roe = "Ruim: ROE abaixo de 8%. Baixa eficiência na geração de riqueza. (-1)"; }
-        else { commentary.roe = "Aceitável: ROE entre 8% e 15%. (0)"; }
-
-        // 6. Margem Líquida
-        if (metrics.MargemLiq * 100 > 10) { score += 1; commentary.margem = "Boa: Margem líquida acima de 10%. Alta capacidade de conversão de receita em lucro. (+1)"; }
-        else if (metrics.MargemLiq * 100 < 5) { score -= 1; commentary.margem = "Fraca: Margem líquida abaixo de 5%. A lucratividade é apertada. (-1)"; }
-        else { commentary.margem = "Neutro: Margem líquida entre 5% e 10%. (0)"; }
-        
-        // 7. Dívida Líquida / EBITDA
-        if (metrics.DLEBITDA < 2.0) { score += 2; commentary.dl_ebitda = "Baixo Risco: Dívida Líquida / EBITDA abaixo de 2. Empresa bem capitalizada e com baixa alavancagem. (+2)"; }
-        else if (metrics.DLEBITDA > 3.5) { score -= 2; commentary.dl_ebitda = "Alto Risco: Dívida Líquida / EBITDA acima de 3.5. Alavancagem elevada, exigindo atenção. (-2)"; }
-        else { score += 0; commentary.dl_ebitda = "Risco Moderado: Dívida Líquida / EBITDA entre 2.0 e 3.5. (0)"; }
-
-        // 8. Liquidez Corrente
-        if (metrics.LiquidezCorrente > 1.5) { score += 1; commentary.liq_corr = "Muito Boa: Liquidez Corrente acima de 1.5. Excelente capacidade de pagar dívidas de curto prazo. (+1)"; }
-        else if (metrics.LiquidezCorrente < 1.0) { score -= 1; commentary.liq_corr = "Alerta: Liquidez Corrente abaixo de 1. Risco de caixa no curto prazo. (-1)"; }
-        else { commentary.liq_corr = "Aceitável: Liquidez Corrente entre 1.0 e 1.5. (0)"; }
-        
-        // 9. Dividend Yield (Recomendação de Renda)
-        if (metrics.DY_pct > 6.0) { score += 1; commentary.dy = "Bom DY: Dividend Yield acima de 6%. Atrai investidores de renda. (+1)"; }
-        else { commentary.dy = "DY Neutro: DY abaixo de 6%. (0)"; }
-
-
-        return { total: score, commentary: commentary };
-    }
-    
-    // Função para exibir as métricas chave (SEM ALTERAÇÕES)
-    function displayKeyMetrics(metrics) {
-        const metricsContainer = document.getElementById('keyMetrics');
-        
-        const metricItems = [
-            { label: "P/L", value: metrics.PL.toFixed(2) },
-            { label: "P/VPA", value: metrics.PVPA.toFixed(2) },
-            { label: "EV/EBITDA", value: metrics.EVEBITDA.toFixed(2) },
-            { label: "ROE", value: metrics.ROE_pct.toFixed(2) + '%' },
-            { label: "Margem Líquida", value: (metrics.MargemLiq * 100).toFixed(2) + '%' },
-            { label: "Cresc. Sustentável (g)", value: metrics.g_pct.toFixed(2) + '%' },
-            { label: "PEG Ratio", value: metrics.PEG.toFixed(2) },
-            { label: "Dívida Líq./EBITDA", value: metrics.DLEBITDA.toFixed(2) + 'x' },
-            { label: "Liquidez Corrente", value: metrics.LiquidezCorrente.toFixed(2) },
-            { label: "Giro do Ativo", value: metrics.GiroAtivo.toFixed(2) },
-            { label: "Dividend Yield", value: metrics.DY_pct.toFixed(2) + '%' },
-        ];
-        
-        metricsContainer.innerHTML = metricItems.map(item => `
-            <div class="bg-gray-900 p-4 rounded-xl shadow-lg border border-indigo-600/50 flex flex-col items-center">
-                <span class="text-xs text-indigo-300 uppercase">${item.label}</span>
-                <strong class="text-xl font-bold text-white mt-1">${item.value}</strong>
-            </div>
-        `).join('');
-    }
-
-    // Função para Análise de Risco (SEM ALTERAÇÕES)
-    async function generateRiskAnalysis(ticker) {
-        const riskTextElement = document.getElementById('riskText');
-        
-        const prompt = `Realize uma análise de risco e cenários futuros (otimista, esperado, pessimista) para a ação ${ticker}. O seu relatório deve conter:
-1. **Riscos Principais:** Liste os 3 principais riscos (setor, regulatório ou macroeconômico) que podem afetar o desempenho desta ação.
-2. **Cenário Otimista:** Descreva brevemente o que levaria a ação a ter um desempenho significativamente superior (bull case).
-3. **Cenário Esperado:** Descreva o cenário mais provável para a ação (base case).
-4. **Cenário Pessimista:** Descreva o que levaria a ação a ter um desempenho ruim (bear case).
-Utilize informações atuais do Google Search para embasamento.`;
-        
-        try {
-            let attempts = 0;
-            const maxAttempts = 5;
-            let response;
-            
-            while (attempts < maxAttempts) {
-                try {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }],
-                            // ATIVANDO O GOOGLE SEARCH PARA CONTEXTO ATUALIZADO
-                            tools: [{ "google_search": {} }],
-                            systemInstruction: { parts: [{ text: "Você é um analista de mercado e risco, focado em fornecer uma análise qualitativa e cenários de investimento de forma objetiva e em português. Formate a resposta usando Markdown para facilitar a leitura." }] }
-                        })
-                    });
-
-                    if (response.ok) {
-                        break;
-                    }
-                } catch (error) {
-                    console.error(`Tentativa ${attempts + 1} de risco falhou.`, error);
-                }
-                attempts++;
-                if (attempts < maxAttempts) {
-                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
-                }
-            }
-
-            if (!response || !response.ok) {
-                riskTextElement.textContent = "❌ Não foi possível gerar a análise de risco e cenários. Tente novamente mais tarde.";
+            if (!ticker) {
+                showMessage("Por favor, insira um ticker de ação (ex: GOOG).", 'error');
                 return;
             }
 
-            const result = await response.json();
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Análise indisponível.";
-            
-            riskTextElement.textContent = text;
-            
-        } catch (error) {
-            console.error("Erro geral na geração de análise de risco:", error);
-            riskTextElement.textContent = `❌ Erro inesperado: ${error.message}`;
-        } finally {
-            document.getElementById('riskLoading').classList.add('hidden');
-            document.getElementById('riskArea').classList.remove('hidden');
-        }
-    }
-    
-    // Função para gerar o relatório final (SEM ALTERAÇÕES)
-    async function generateReport(metrics, analysisScore, ticker) {
-        const recommendationTextElement = document.getElementById('recommendationText');
-        const finalRecommendationElement = document.getElementById('finalRecommendation');
-
-        // Formatação dos comentários para o prompt
-        const scoreCommentary = Object.keys(analysisScore.commentary)
-            .map(key => analysisScore.commentary[key])
-            .join('\n- ');
-
-        const finalScore = analysisScore.total;
-        
-        let finalRec = "";
-        let recColor = "";
-        
-        if (finalScore >= 5) {
-            finalRec = "COMPRA FORTE";
-            recColor = "bg-green-700 text-green-300";
-        } else if (finalScore >= 2) {
-            finalRec = "COMPRA MODERADA";
-            recColor = "bg-lime-700 text-lime-300";
-        } else if (finalScore >= 0) {
-            finalRec = "NEUTRO / MANTER";
-            recColor = "bg-yellow-700 text-yellow-300";
-        } else if (finalScore >= -3) {
-            finalRec = "VENDA MODERADA";
-            recColor = "bg-orange-700 text-orange-300";
-        } else {
-            finalRec = "VENDA FORTE";
-            recColor = "bg-red-700 text-red-300";
-        }
+            // Exibir estado de carregamento
+            titleElement.innerHTML = `<span class="loading-animation"></span> Gerando ${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)}...`;
+            resultsDiv.innerHTML = '<p class="text-gray-500 italic">Estou gerando o relatório, vá tomar um café e me deixa em paz um segundo...</p>';
+            sourcesDiv.innerHTML = '';
 
 
-        const prompt = `Analise a ação ${ticker} com base nos seguintes indicadores fundamentais e na pontuação de ${finalScore} pontos:
+            try {
+                const config = getAnalysisConfig(analysisType, ticker);
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-Indicadores e Pontuação (Comentários):
-- ${scoreCommentary}
-
-Métricas-Chave:
-- P/L: ${metrics.PL.toFixed(2)}
-- P/VPA: ${metrics.PVPA.toFixed(2)}
-- ROE: ${metrics.ROE_pct.toFixed(2)}%
-- Dívida Líq./EBITDA: ${metrics.DLEBITDA.toFixed(2)}x
-- Crescimento Sustentável (g): ${metrics.g_pct.toFixed(2)}%
-- PEG Ratio: ${metrics.PEG.toFixed(2)}
-
-Gere um relatório fundamentalista que deve conter:
-1. Uma **análise resumida** dos pontos fortes e fracos da empresa (Valuation, Rentabilidade e Endividamento).
-2. Uma **justificativa detalhada** para a recomendação final de ${finalRec}.
-3. O relatório deve ser escrito em tom formal e persuasivo, usando no máximo 250 palavras. Não inclua a recomendação final no corpo do texto, apenas na conclusão.`;
-        
-        try {
-            let attempts = 0;
-            const maxAttempts = 5;
-            let response;
-            
-            while (attempts < maxAttempts) {
-                try {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }],
-                            systemInstruction: { parts: [{ text: "Você é um analista de investimento e redige relatórios de alta qualidade, objetivos e com excelente português." }] }
-                        })
-                    });
-
-                    if (response.ok) {
-                        break;
+                // O payload agora usa o Google Search (grounding)
+                const payload = {
+                    contents: [{ parts: [{ text: config.userQuery }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: {
+                        parts: [{ text: config.systemPrompt }]
+                    },
+                    config: {
+                         // Permite ao modelo gerar tanto texto quanto busca na web (Grounding)
+                        'googleSearch': {}
                     }
-                } catch (error) {
-                    console.error(`Tentativa ${attempts + 1} de relatório falhou.`, error);
+                };
+
+                const response = await fetchWithBackoff(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                const candidate = result.candidates?.[0];
+
+                if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                    throw new Error("Resposta inválida da API ou conteúdo vazio.");
                 }
-                attempts++;
-                if (attempts < maxAttempts) {
-                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000));
+
+                // Extrair o texto gerado
+                let generatedText = candidate.content.parts[0].text;
+                
+                // 1. Processar e formatar o texto para exibição
+                generatedText = formatMarkdownToHtml(generatedText);
+
+
+                // 2. Extrair e exibir as fontes (citações)
+                let sources = [];
+                const groundingMetadata = candidate.groundingMetadata;
+                if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                    sources = groundingMetadata.groundingAttributions
+                        .map(attribution => ({
+                            uri: attribution.web?.uri,
+                            title: attribution.web?.title,
+                        }))
+                        .filter(source => source.uri && source.title);
                 }
+
+                resultsDiv.innerHTML = generatedText;
+                titleElement.textContent = config.title;
+
+                if (sources.length > 0) {
+                    const uniqueSources = Array.from(new Set(sources.map(s => s.uri)))
+                        .map(uri => sources.find(s => s.uri === uri));
+
+                    const sourcesHtml = 'Fontes Consultadas: ' + uniqueSources.map((s, index) => 
+                        `<a href="${s.uri}" target="_blank" class="text-indigo-600 hover:text-indigo-800 underline">${s.title} (${index + 1})</a>`
+                    ).join(', ');
+                    sourcesDiv.innerHTML = sourcesHtml;
+                } else {
+                    sourcesDiv.innerHTML = 'Nenhuma fonte citada pelo modelo (pode ter usado conhecimento geral).';
+                }
+
+                showMessage("Análise gerada com sucesso!", 'success');
+
+            } catch (error) {
+                console.error("Erro na análise:", error);
+                titleElement.textContent = 'Erro na Análise';
+                resultsDiv.innerHTML = `<p class="text-red-600">Ocorreu um erro ao processar sua solicitação: ${error.message}. Por favor, tente novamente.</p>`;
+                sourcesDiv.innerHTML = '';
+                showMessage(`Falha ao gerar análise: ${error.message}`, 'error');
             }
-            
-            if (!response || !response.ok) {
-                recommendationTextElement.textContent = "❌ Não foi possível gerar o relatório fundamentalista.";
-                return;
+        }
+
+        // Função simples para converter o formato Markdown do Gemini em HTML para melhor visualização
+        function formatMarkdownToHtml(markdown) {
+            let html = markdown;
+
+            // Converter negrito (**) e (__)
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+
+            // Converter cabeçalhos Markdown (#) para <h4> para manter o tamanho de texto razoável dentro da div de resultados
+            html = html.replace(/^### (.*$)/gim, '<h4 class="text-lg font-bold mt-4 mb-2">$1</h4>');
+            html = html.replace(/^## (.*$)/gim, '<h4 class="text-lg font-bold mt-4 mb-2">$1</h4>');
+            html = html.replace(/^# (.*$)/gim, '<h4 class="text-xl font-bold mt-4 mb-2">$1</h4>');
+
+            // Converter listas desordenadas (-) para <ul><li>
+            html = html.replace(/^\* (.*$)/gim, '<li>$1</li>');
+            html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
+            if (html.includes('<li>')) {
+                html = '<ul class="list-disc pl-5 space-y-1">' + html + '</ul>';
+                // Limpar <ul> aninhadas (não perfeito, mas resolve problemas comuns)
+                html = html.replace('</ul><ul class="list-disc pl-5 space-y-1">', '');
             }
 
-            const result = await response.json();
-            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Relatório indisponível.";
+            // Converter novas linhas duplas em parágrafos
+            html = '<p>' + html.split('\n\n').join('</p><p>') + '</p>';
             
-            recommendationTextElement.textContent = text;
-            finalRecommendationElement.textContent = `RECOMENDAÇÃO: ${finalRec}`;
-            finalRecommendationElement.className = `text-center text-4xl font-extrabold mt-6 p-3 rounded-lg ${recColor}`;
-            
-        } catch (error) {
-            console.error("Erro geral na geração de relatório:", error);
-            recommendationTextElement.textContent = `❌ Erro inesperado: ${error.message}`;
-        } finally {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('reportArea').classList.remove('hidden');
+            // Remover tags <p> vazias criadas pelo processamento
+            html = html.replace(/<p>\s*<\/p>/g, '');
+            html = html.replace(/<\/ul><\/p>/g, '</ul>');
+            html = html.replace(/<p><ul/g, '<ul');
+
+            // Adicionar quebras de linha para listas e títulos que foram convertidos
+            html = html.replace(/<\/h4>(\s*)/g, '</h4>$1<br>');
+            html = html.replace(/<\/li>(\s*)/g, '</li>$1');
+
+
+            return html;
         }
-    }
-</script>
+    </script>
 </body>
 </html>
