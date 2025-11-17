@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analista de Ações Nimbus 3.000</title>
+    <title>Analista de Ações Nimbus 3000</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -58,7 +58,7 @@
 
     <div class="container-card shadow-2xl rounded-2xl p-6 md:p-10 border border-indigo-900">
 
-        <h1 class="text-4xl font-extrabold text-indigo-400 mb-2">Analista de Ações Nimbus 3.000 📈</h1>
+        <h1 class="text-4xl font-extrabold text-indigo-400 mb-2">Analisador de Ações Nimbus 3000📈</h1>
         <p class="text-gray-400 mb-6">Insira o ticker do ativo (ex: GOOG, PETR4.SA) e escolha uma análise. Os dados são pesquisados em tempo real.</p>
 
         <!-- Seção de Entrada -->
@@ -113,7 +113,7 @@
     <script>
         // Variáveis Globais do Canvas (MANDATÓRIAS)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        // A chave API é definida como string vazia para ser injetada pelo ambiente
+        // A chave API é definida como string vazia para ser injetada pelo ambiente (Padrão)
         const apiKey = ""; 
         const modelName = 'gemini-2.5-flash-preview-09-2025';
 
@@ -165,7 +165,7 @@
                 case 'technical':
                     title = "Análise Técnica Completa - " + ticker;
                     // INSTRUÇÃO ESPECÍFICA PARA TÉCNICA (Corrigida)
-                    const technicalMetrics = "Os cards DEVEM incluir as métricas: **Preço Atual**, **Resistência Imediata** e **Suporte Imediato**. Para Resistência/Venda use 'VENDA', para Suporte/Compra use 'COMPRA' e para preços intermediários/consolidação use 'NEUTRO'.";
+                    const technicalMetrics = "Os cards DEVEM incluir as métricas: **Preço Atual**, **Resistência Imediata** e **Suporte Imediato**. Para Resistência/Venda use 'VENDA', para Suporte/Compra use 'COMPRA', e para preços intermediários/consolidação use 'NEUTRO'.";
                     systemPrompt = `Você é um analista técnico de mercado de ações de elite. ${cardInstruction.replace("3 a 4", "3")} ${technicalMetrics} Após os cards, forneça uma análise detalhada sobre indicadores como Médias Móveis (MM), RSI e Volume. Use o formato Markdown.`;
                     userQuery = `Realize a análise técnica e de preços chaves (Preço Atual, Suporte, Resistência) para a ação/ativo: ${ticker}.`;
                     break;
@@ -188,9 +188,7 @@
                 try {
                     const response = await fetch(url, options);
                     
-                    // Verificação de erro HTTP (Adicionado para melhor tratamento de erros)
                     if (!response.ok) {
-                         // Lança erro específico para status 4xx/5xx
                          const errorBody = await response.json().catch(() => ({}));
                          const errorMessage = errorBody.error?.message || `Erro HTTP: ${response.status} ${response.statusText}`;
                          throw new Error(`Falha na API: ${errorMessage}`);
@@ -226,13 +224,13 @@
             }
 
             titleElement.innerHTML = `<span class="loading-animation"></span> Gerando ${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)} para ${ticker}...`;
-            resultsDiv.innerHTML = '<p class="text-gray-400 italic">Estou fazendo em segundos o trabalho que voce faria em horas, então deixa o papai aqui trabalhar e aguarde mais alguns segundos</p>';
+            resultsDiv.innerHTML = '<p class="text-gray-400 italic">Estou fazendo em segundos o trabalho que você levaria horas, então deixa o papai aqui trabalhar e aguarde mais alguns segundos</p>';
             cardsDiv.innerHTML = '';
             sourcesDiv.innerHTML = '';
 
             try {
                 const config = getAnalysisConfig(analysisType, ticker);
-                // A chave API é lida da variável global (aqui definida como vazia, como esperado pelo ambiente).
+                // A chave API é injetada automaticamente pela infraestrutura
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
                 const payload = {
@@ -253,7 +251,6 @@
                 const candidate = result.candidates?.[0];
 
                 if (!candidate || !candidate.content?.parts?.[0]?.text) {
-                    // Adicionando console.log para inspecionar a resposta bruta em caso de falha
                     console.error("Resposta API bruta (candidate missing content):", JSON.stringify(result, null, 2));
                     throw new Error("Resposta inválida da API ou conteúdo vazio.");
                 }
