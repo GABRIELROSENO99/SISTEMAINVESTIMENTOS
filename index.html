@@ -15,9 +15,10 @@
         }
         .container-card {
             max-width: 900px;
-            margin: 0 auto;
+            /* Centralização horizontal garantida pelo body flexbox, mas mantemos o max-width */
             padding: 2rem 1rem;
             background-color: #16162a; /* Card principal ligeiramente mais escuro */
+            margin: auto; /* Garante que o card se auto-centralize e não estique mais que o max-width */
         }
         .input-group, .button-group {
             display: flex;
@@ -54,9 +55,9 @@
         }
     </style>
 </head>
-<body class="p-4">
+<body class="min-h-screen flex items-center justify-center p-4"> <!-- Adicionado min-h-screen, flex, items-center e justify-center para centralização total -->
 
-    <div class="container-card shadow-2xl rounded-2xl p-6 md:p-10 border border-indigo-900">
+    <div class="container-card shadow-2xl rounded-2xl p-6 md:p-10 border border-indigo-900 w-full"> <!-- Adicionado w-full para melhor responsividade -->
 
         <h1 class="text-4xl font-extrabold text-indigo-400 mb-2">Analisador de Ações Nimbus 3000📈</h1>
         <p class="text-gray-400 mb-6">Insira o ticker do ativo (ex: GOOG, PETR4.SA) e escolha uma análise. Os dados são pesquisados em tempo real.</p>
@@ -113,8 +114,8 @@
     <script>
         // Variáveis Globais do Canvas (MANDATÓRIAS)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        // A chave API é definida como string vazia para ser injetada pelo ambiente (Padrão)
-        const apiKey = ""; 
+        // Chave API fornecida pelo usuário, inserida para corrigir o erro de autenticação.
+        const apiKey = "AIzaSyDsfkqZMTY-zuANGHoTHMYhtBBdkTJLgcI"; 
         const modelName = 'gemini-2.5-flash-preview-09-2025';
 
         // --- Funções de Utilitário e UI ---
@@ -189,9 +190,9 @@
                     const response = await fetch(url, options);
                     
                     if (!response.ok) {
-                         const errorBody = await response.json().catch(() => ({}));
-                         const errorMessage = errorBody.error?.message || `Erro HTTP: ${response.status} ${response.statusText}`;
-                         throw new Error(`Falha na API: ${errorMessage}`);
+                          const errorBody = await response.json().catch(() => ({}));
+                          const errorMessage = errorBody.error?.message || `Erro HTTP: ${response.status} ${response.statusText}`;
+                          throw new Error(`Falha na API: ${errorMessage}`);
                     }
                     
                     if (response.status !== 429) { 
@@ -230,7 +231,7 @@
 
             try {
                 const config = getAnalysisConfig(analysisType, ticker);
-                // A chave API é injetada automaticamente pela infraestrutura
+                // Usa a chave API definida acima
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
                 const payload = {
@@ -435,7 +436,7 @@
             html = html.split('\n').map(line => {
                 const trimmedLine = line.trim();
                 // Verifica se a linha não está vazia e não é o início de uma tag de bloco já convertida
-                if (trimmedLine === '' || trimmedLine.match(/<h|<ul|<li|<strong|<em|<a/i)) {
+                if (trimmedLine === '' || trimmedLine.match(/<h|<ul|<\/ul|<li|<strong|<em|<a/i)) {
                     return line;
                 }
                 // Adiciona tags de parágrafo ao redor do texto
