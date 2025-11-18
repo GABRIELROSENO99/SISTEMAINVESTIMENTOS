@@ -88,6 +88,11 @@
                     class="flex items-center justify-center px-6 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[160px] m-1">
                 Análise de Momentum
             </button>
+
+            <button onclick="analyzeStock('valuation')"
+                    class="flex items-center justify-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[160px] m-1">
+                Análise de Valuation
+            </button>
         </div>
 
         <!-- Seção de Resultados -->
@@ -174,6 +179,11 @@
                     title = "Análise de Momentum - " + ticker;
                     systemPrompt = `Você é um especialista em estratégias de momentum de curto prazo. ${cardInstruction} Os indicadores chaves DEVEM incluir Momentum (indicando FORTE/FRACO no valor), Mudança de Preço de Curto Prazo e Volume. Use 'COMPRA', 'VENDA' ou 'NEUTRO' como status. Após os cards, forneça uma análise focada exclusivamente no momentum da ação/ativo, indicando a tendência e os principais fatores de influência. Use o formato Markdown.`;
                     userQuery = `Realize a análise de momentum para a ação/ativo: ${ticker}.`;
+                    break;
+                case 'valuation':
+                    title = "Análise de Valuation - " + ticker;
+                    systemPrompt = `Você é um analista de valuation experiente. ${cardInstruction} Os indicadores chaves DEVEM incluir Preço Justo, Margem de Segurança e Múltiplos Comparáveis. Use 'COMPRA', 'VENDA' ou 'NEUTRO' como status. Após os cards, forneça uma análise concisa sobre o valuation racional do ativo, incluindo métodos como DCF ou múltiplos, e perspectivas de valor. Use o formato Markdown com títulos e listas.`;
+                    userQuery = `Forneça a análise de valuation racional mais recente para o ativo: ${ticker}.`;
                     break;
                 default:
                     throw new Error("Tipo de análise desconhecido.");
