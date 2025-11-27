@@ -6,7 +6,7 @@ exports.handler = async (event) => {
 
   // Pegue a chave API da variável de ambiente (configurada no Netlify)
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  if (!apiKey) { 
     return { statusCode: 500, body: 'Chave API não configurada no servidor' };
   }
 
