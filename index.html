@@ -56,12 +56,9 @@
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4"> <!-- Adicionado min-h-screen, flex, items-center e justify-center para centralização total -->
-
     <div class="container-card shadow-2xl rounded-2xl p-6 md:p-10 border border-indigo-900 w-full"> <!-- Adicionado w-full para melhor responsividade -->
-
         <h1 class="text-4xl font-extrabold text-indigo-400 mb-2">Analista de Ações Nimbus 3000📈</h1>
         <p class="text-gray-400 mb-6">Insira o ticker do ativo (ex: GOOG, PETR4.SA) e escolha uma análise. Os dados são pesquisados em tempo real.</p>
-
         <!-- Seção de Entrada -->
         <div class="input-group mb-6 flex-col sm:flex-row">
             <input type="text" id="tickerInput" placeholder="Ex: GOOG ou PETR4.SA"
@@ -71,30 +68,25 @@
                 Limpar
             </button>
         </div>
-
         <!-- Seção de Botões de Análise -->
         <div class="button-group flex-wrap justify-center sm:justify-start mb-8">
             <button onclick="analyzeStock('fundamental')"
                     class="flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[160px] m-1">
                 Análise Fundamentalista
             </button>
-
             <button onclick="analyzeStock('technical')"
                     class="flex items-center justify-center px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-[160px] m-1">
                 Análise Técnica
             </button>
-
             <button onclick="analyzeStock('momentum')"
                     class="flex items-center justify-center px-6 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[160px] m-1">
                 Análise de Momentum
             </button>
-
             <button onclick="analyzeStock('valuation')"
                     class="flex items-center justify-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[160px] m-1">
                 Análise de Valuation
             </button>
         </div>
-
         <!-- Seção de Resultados -->
         <div class="bg-gray-700 p-6 rounded-xl border border-gray-600 shadow-inner">
             <h2 class="text-xl font-bold text-gray-200 mb-4 flex items-center">
@@ -107,43 +99,34 @@
                     Aguardando o ticker e o tipo de análise...
                 </div>
             </div>
-            
+           
             <div id="sourcesContainer" class="mt-6 pt-4 border-t border-gray-600 text-sm text-gray-400"></div>
         </div>
-
         <!-- Seção de Mensagens/Erros (Para substituir alert()) -->
         <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-xl hidden transition-opacity duration-300" role="alert"></div>
-
     </div>
-
     <script>
         // Variáveis Globais do Canvas (MANDATÓRIAS)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        // Chave API fornecida pelo usuário, inserida para corrigir o erro de autenticação.
-        const apiKey = "AIzaSyDsfkqZMTY-zuANGHoTHMYhtBBdkTJLgcI"; 
         const modelName = 'gemini-2.5-flash-preview-09-2025';
-
         // --- Funções de Utilitário e UI ---
-
         function showMessage(message, type = 'info') {
             const box = document.getElementById('messageBox');
             box.textContent = message;
             box.classList.remove('hidden', 'opacity-0');
             box.classList.add('opacity-100');
-            
+           
             let bgColor = 'bg-blue-800 border-blue-600 text-blue-200';
             if (type === 'error') bgColor = 'bg-red-800 border-red-600 text-red-200';
             if (type === 'success') bgColor = 'bg-green-800 border-green-600 text-green-200';
-            
+           
             box.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-xl transition-opacity duration-300 border ${bgColor}`;
-
             setTimeout(() => {
                 box.classList.remove('opacity-100');
                 box.classList.add('opacity-0');
                 setTimeout(() => { box.classList.add('hidden'); }, 300);
             }, 5000);
         }
-
         function clearResults() {
             document.getElementById('tickerInput').value = '';
             document.getElementById('results').innerHTML = 'Aguardando o ticker e o tipo de análise...';
@@ -151,17 +134,15 @@
             document.getElementById('analysisTitle').textContent = 'Resultados da Análise';
             document.getElementById('sourcesContainer').innerHTML = '';
         }
-
         // --- Configuração de Análise ---
-
         function getAnalysisConfig(analysisType, ticker) {
             let systemPrompt = "";
             let userQuery = "";
             let title = "";
-            
+           
             // INSTRUÇÃO REFORÇADA E UNIFICADA para cards
             let cardInstruction = "A análise DEVE começar imediatamente (sem texto introdutório) com uma lista Markdown de exatamente 6 'INDICADORES CHAVE'. Use o formato EXATO para cada item da lista (começando em uma nova linha): `- **[MÉTRICA]:** [VALOR] | Status: [STATUS_COLOR_KEY]`. As chaves de status **MANDATÓRIAS** para coloração são: 'COMPRA', 'VENDA', ou 'NEUTRO'.";
-            
+           
             switch (analysisType) {
                 case 'fundamental':
                     title = "Análise Fundamentalista - " + ticker;
@@ -191,24 +172,21 @@
                 default:
                     throw new Error("Tipo de análise desconhecido.");
             }
-
             return { systemPrompt, userQuery, title };
         }
-
         // --- Lógica de Chamada da API ---
-
         async function fetchWithBackoff(url, options, maxRetries = 5) {
             for (let i = 0; i < maxRetries; i++) {
                 try {
                     const response = await fetch(url, options);
-                    
+                   
                     if (!response.ok) {
                           const errorBody = await response.json().catch(() => ({}));
                           const errorMessage = errorBody.error?.message || `Erro HTTP: ${response.status} ${response.statusText}`;
                           throw new Error(`Falha na API: ${errorMessage}`);
                     }
-                    
-                    if (response.status !== 429) { 
+                   
+                    if (response.status !== 429) {
                         return response;
                     }
                     const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
@@ -223,7 +201,6 @@
             }
             throw new Error("Falha na chamada da API após várias tentativas.");
         }
-
         // Função principal que chama o Gemini API
         async function analyzeStock(analysisType) {
             const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
@@ -231,22 +208,18 @@
             const cardsDiv = document.getElementById('cardsSection');
             const sourcesDiv = document.getElementById('sourcesContainer');
             const titleElement = document.getElementById('analysisTitle');
-
             if (!ticker) {
                 showMessage("Por favor, insira um ticker de ação (ex: GOOG).", 'error');
                 return;
             }
-
             titleElement.innerHTML = `<span class="loading-animation"></span> Gerando ${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)} para ${ticker}...`;
             resultsDiv.innerHTML = '<p class="text-gray-400 italic">Estou fazendo em segundos o trabalho que você levaria horas, então deixa o papai aqui trabalhar e aguarde mais alguns segundos</p>';
             cardsDiv.innerHTML = '';
             sourcesDiv.innerHTML = '';
-
             try {
                 const config = getAnalysisConfig(analysisType, ticker);
                 // Usa a chave API definida acima
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-
+                const apiUrl = '/.netlify/functions/gemini-proxy'; // Isso chama o backend no mesmo site
                 const payload = {
                     contents: [{ parts: [{ text: config.userQuery }] }],
                     tools: [{ "google_search": {} }],
@@ -254,48 +227,43 @@
                         parts: [{ text: config.systemPrompt }]
                     }
                 };
-
-                const response = await fetchWithBackoff(apiUrl, {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
+                if (!response.ok) {
+                    throw new Error(`Falha na API: ${response.status}`);
+                }
                 const result = await response.json();
                 const candidate = result.candidates?.[0];
-
                 if (!candidate || !candidate.content?.parts?.[0]?.text) {
                     console.error("Resposta API bruta (candidate missing content):", JSON.stringify(result, null, 2));
                     throw new Error("Resposta inválida da API ou conteúdo vazio.");
                 }
-
                 let generatedText = candidate.content.parts[0].text;
-                
+               
                 // 1. Processar e renderizar os cards
                 const { cardHtml, cleanedMarkdown } = renderKeyMetricsAsCards(generatedText);
                 cardsDiv.innerHTML = cardHtml;
-                
+               
                 // 2. Formatar o restante do texto
                 const formattedText = formatMarkdownToHtml(cleanedMarkdown);
                 resultsDiv.innerHTML = formattedText;
                 titleElement.textContent = config.title;
-
                 // 3. Extrair e exibir as fontes (citações)
                 const sources = extractGroundingSources(candidate);
                 if (sources.length > 0) {
                     const uniqueSources = Array.from(new Set(sources.map(s => s.uri)))
                         .map(uri => sources.find(s => s.uri === uri));
-
-                    const sourcesHtml = 'Fontes Consultadas: ' + uniqueSources.map((s, index) => 
+                    const sourcesHtml = 'Fontes Consultadas: ' + uniqueSources.map((s, index) =>
                         `<a href="${s.uri}" target="_blank" class="text-indigo-400 hover:text-indigo-300 underline">${s.title} (${index + 1})</a>`
                     ).join(', ');
                     sourcesDiv.innerHTML = sourcesHtml;
                 } else {
                     sourcesDiv.innerHTML = 'Nenhuma fonte citada pelo modelo.';
                 }
-
                 showMessage("Análise gerada com sucesso!", 'success');
-
             } catch (error) {
                 console.error("Erro na análise:", error);
                 titleElement.textContent = 'Erro na Análise';
@@ -305,7 +273,6 @@
                 showMessage(`Falha ao gerar análise: ${error.message}`, 'error');
             }
         }
-
         // Função para extrair fontes
         function extractGroundingSources(candidate) {
             let sources = [];
@@ -320,19 +287,17 @@
             }
             return sources;
         }
-
         // --- Funções de Renderização ---
-        
+       
         // Função para identificar e renderizar as métricas chave como cards coloridos
         function renderKeyMetricsAsCards(markdown) {
             // Padrão: - **[MÉTRICA]:** [VALOR] | Status: [STATUS/AÇÃO]
             // Usamos 'gim' para encontrar o padrão em múltiplas linhas.
-            const cardPattern = /^\s*-\s*\*\*(.*?):\*\*\s*(.*?)\s*\|\s*Status:\s*(.*)/gim; 
+            const cardPattern = /^\s*-\s*\*\*(.*?):\*\*\s*(.*?)\s*\|\s*Status:\s*(.*)/gim;
             let match;
             const cards = [];
             const matchedLines = [];
             const originalText = markdown;
-
             // Encontra todas as linhas de métricas
             while ((match = cardPattern.exec(markdown)) !== null) {
                 const line = match[0].trim();
@@ -341,12 +306,10 @@
                 const status = match[3].trim();
                 cards.push({ metric, value, status });
                 // Adiciona a linha completa ao array para remoção posterior
-                matchedLines.push(line); 
+                matchedLines.push(line);
             }
-
             // Se não encontrou cards, retorna o markdown original
             if (cards.length === 0) return { cardHtml: '', cleanedMarkdown: markdown };
-
             // Remove todas as linhas de cards encontradas do texto original
             let cleanedMarkdown = originalText;
             matchedLines.forEach(line => {
@@ -354,20 +317,18 @@
                 // Usamos um regex mais seguro para garantir que a remoção funcione em qualquer posição
                 cleanedMarkdown = cleanedMarkdown.replace(new RegExp(line.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), '').trim();
             });
-
             // Remove o cabeçalho 'INDICADORES CHAVE' se o modelo o tiver adicionado (apesar da instrução)
             cleanedMarkdown = cleanedMarkdown.replace(/#+\s*INDICADORES CHAVE\s*/gi, '').trim();
-
-            
+           
             let cardsHtml = '<div class="flex flex-wrap gap-4 mb-6">'; // Adiciona margem inferior para separar do texto
-            
+           
             cards.forEach(card => {
                 let colorClass = 'bg-gray-700 border-gray-600'; // Default Neutro/Info/Fallback
                 let indicatorColor = 'text-gray-400';
-                
+               
                 // Definir cores baseadas no status/tom (focado nas palavras-chave COMPRA, VENDA, NEUTRO)
                 const statusLower = card.status.toLowerCase();
-                
+               
                 // COMPRA (Verde)
                 if (statusLower.includes('compra') || statusLower.includes('alta') || statusLower.includes('forte') || statusLower.includes('positivo') || statusLower.includes('bullish')) {
                     colorClass = 'bg-emerald-800/70 border-emerald-600';
@@ -381,7 +342,6 @@
                     colorClass = 'bg-amber-800/70 border-amber-600';
                     indicatorColor = 'text-amber-400';
                 }
-
                 cardsHtml += `
                     <div class="flex-1 min-w-[140px] p-4 rounded-xl shadow-lg transition duration-300 ${colorClass} border">
                         <p class="text-sm font-medium text-gray-300 uppercase truncate">${card.metric}</p>
@@ -390,41 +350,30 @@
                     </div>
                 `;
             });
-
             cardsHtml += '</div>';
-
             return { cardHtml: cardsHtml, cleanedMarkdown: cleanedMarkdown };
         }
-
-
         // Função para converter o formato Markdown do Gemini em HTML
         function formatMarkdownToHtml(markdown) {
             let html = markdown;
-
             // Converter negrito (**) e (__)
             html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
-
             // Converter itálico (*) e (_)
             html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
             html = html.replace(/_(.*?)_/g, '<em>$1</em>');
-
-
             // Converter cabeçalhos Markdown (#) para <h4>
             html = html.replace(/^### (.*$)/gim, '<h4 class="text-lg font-bold text-gray-200 mt-4 mb-2">$1</h4>');
             html = html.replace(/^## (.*$)/gim, '<h4 class="text-xl font-bold text-gray-200 mt-4 mb-2">$1</h4>');
             html = html.replace(/^# (.*$)/gim, '<h4 class="text-2xl font-bold text-indigo-400 mt-4 mb-2">$1</h4>');
-
             // Converte listas desordenadas (-) e (*) para <ul><li>
             // Troca os marcadores de lista por <li>
             html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li>$1</li>');
-
             // Envolve os blocos de <li> em <ul> (Lógica de correção de lista)
             if (html.includes('<li>')) {
                 let lines = html.split('\n');
                 let inList = false;
                 let finalHtml = [];
-
                 lines.forEach(line => {
                     const trimmedLine = line.trim();
                     if (trimmedLine.startsWith('<li>') && !inList) {
@@ -437,14 +386,13 @@
                     // Adiciona a linha (seja <li> ou texto normal)
                     finalHtml.push(line);
                 });
-                
+               
                 // Fecha a última tag <ul> se ainda estiver aberta
                 if (inList) {
                     finalHtml.push('</ul>');
                 }
                 html = finalHtml.join('\n');
             }
-
             // Converter parágrafos (qualquer coisa que não seja tag ou cabeçalho)
             html = html.split('\n').map(line => {
                 const trimmedLine = line.trim();
@@ -455,10 +403,8 @@
                 // Adiciona tags de parágrafo ao redor do texto
                 return `<p>${trimmedLine}</p>`;
             }).join('\n');
-
             // Limpa linhas em branco que podem ter sobrado
             html = html.replace(/(\n\s*){2,}/g, '\n\n');
-
             return html;
         }
     </script>
